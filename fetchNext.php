@@ -1,6 +1,7 @@
 <?PHP
 header('content-type: text/html; charset: utf-8');
-require "../web/library.php";
+ini_set('display_errors', 'on');
+require("lib/lifestream.inc.php");
 
 getDatabase();
 ORM::configure('logging', true);
@@ -30,7 +31,7 @@ if (isset($_REQUEST['path'])) {
 	$split = array();
 }
 
-if ($split[0] == "search") {
+if (count($split) && $split[0] == "search") {
 
 	define("DO_LOCATIONS", false);
 	$message = $title = sprintf("Search for \"%s\"", $split[1]);

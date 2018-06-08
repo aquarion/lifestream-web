@@ -6,7 +6,7 @@ define("A_MONTH", 60*60*24*30 );
 define("A_YEAR", 60*60*24*364 );
 */
 
-require("../web/library.php");
+require("lib/lifestream.inc.php");
 
 $split = explode("/", $_SERVER['REQUEST_URI']);
 array_shift($split);
