@@ -22,7 +22,7 @@ if (isset($_REQUEST['after'])) {
 
 $query->where_not_null("title");
 //$query->where_not_equal("source", "tumblr");
-$query->where_not_equal("source", "lastfm");
+// $query->where_not_equal("source", "lastfm");
 
 if (isset($_REQUEST['path'])) {
 	$split = explode("/", $_REQUEST['path']);
@@ -266,7 +266,7 @@ function generate_location_query($location_before_ts, $location_after_ts) {
 	return $location_query;
 }
 
-if (DO_LOCATIONS) {
+if (DO_LOCATIONS && !$offset) {
 	$openpath_query = generate_location_query($location_before_ts, $location_after_ts);
 	$openpath_query->where_not_equal("source", "foursquare");
 	$openpath_rows = $openpath_query->find_array();

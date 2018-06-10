@@ -65,6 +65,7 @@ if(!$date_point){
 <html>
 <head>
 	<script src="//code.jquery.com/jquery-1.10.2.min.js"></script>
+	<script src="//cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.min.js"></script>
 	<script src="/assets/js/packery.pkgd.min.js"></script>
 	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
 	<script src="//twemoji.maxcdn.com/2/twemoji.min.js?2.7"></script>

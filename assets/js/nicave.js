@@ -5,11 +5,16 @@ var packeryInstance = false;
 var mostRecent      = 0;
 var nextDate = new Date(0);
 
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+
 var NicAve = {
 
     lastfm : {},
 
-    music_chart : true,
+    music_chart : false,
 
     init : function(){
         google.setOnLoadCallback(NicAve.loadTiles);
@@ -51,12 +56,15 @@ var NicAve = {
     },
 
     build_music_chart : function(){
-        return;
         if(Object.keys(NicAve.lastfm).length == 0){
+          console.log('no music');
             return;
         }
 
-        data = [];
+        data = {
+            'datasets': [{ 'data': [] }],
+            'labels'  : [],
+        };
         other = 0;
         others = []
 
@@ -72,32 +80,23 @@ var NicAve = {
                 other += value;
                 others.push(artist)
             } else {
-                datum = [artist, value]
-                data.push(datum)
+                data['datasets'][0]['data'].push(value)
+                data['labels']['data'].push(artist)
             }
         }
 
-
+        console.log(data);
         if(other > 0){
-            data.push(["Others", other]);
+              data['datasets'][0]['data'].push(other)
+              data['labels'].push('Others')
         }
 
-        var options = {
-          "title" : "Music",
-          'chartArea': {'width': '90%', 'height': '90%'},
-          'backgroundColor' : 'transparent'
-        };
 
         var container = document.querySelector('#tiles');
 
-        if(!NicAve.music_chart){
-            chartBox = $('<div id="music_chart"/>');
-            $(container).append( chartBox );
-            packeryInstance.appended( chartBox );
-        }
 
-        var data = google.visualization.arrayToDataTable(data);
-        NicAve.music_chart = new google.visualization.PieChart(document.getElementById('music_chart'));
+        // // var data = google.visualization.arrayToDataTable(data);
+        // // NicAve.music_chart = new google.visualization.PieChart(document.getElementById('music_chart'));
 
         height = Math.ceil( (total*.75) / 56) * 56;
         width  = Math.ceil( (total) / 100) * 100
@@ -118,19 +117,37 @@ var NicAve = {
         $('#music_chart').height(height);
         $('#music_chart').width(width);
 
-        if(!$('#music_others').length){
-            chartBox = $('<div id="music_others"/>');
-            chartBox.addClass("item");
+
+        if(!NicAve.music_chart){
+            chartBox = $('<div><canvas id="music_chart"/></div>');
             $(container).append( chartBox );
             packeryInstance.appended( chartBox );
         }
-        if(others.length > 1){
-            plus = others.pop();
-            $('#music_others').html("'Others' includes "+others.join(", ")+" &amp; "+plus);
-        }
 
 
-        NicAve.music_chart.draw(data, options);
+        var ctx = document.getElementById("music_chart").getContext('2d');
+
+        options = {}
+
+        var myPieChart = new Chart(ctx,{
+            type: 'pie',
+            data: data,
+            options: options
+        });
+
+        // if(!$('#music_others').length){
+        //     chartBox = $('<div id="music_others"/>');
+        //     chartBox.addClass("item");
+        //     $(container).append( chartBox );
+        //     packeryInstance.appended( chartBox );
+        // }
+        // if(others.length > 1){
+        //     plus = others.pop();
+        //     $('#music_others').html("'Others' includes "+others.join(", ")+" &amp; "+plus);
+        // }
+
+
+        // NicAve.music_chart.draw(data, options);
 
     },
 
@@ -165,8 +182,28 @@ var NicAve = {
             $('#navup').addClass("navDisabled");
         }
 
+        if(data.locations && data.locations.length && !$('#mapcanvas').length ){
+            map_item = $('<div class="item"></div>');
+            map_item.attr("id", 'mapcanvas')
+            map_item.addClass('map')
+            map_item.width(500)
+            map_item.height(56*6)
+            map_item.attr("resized", true);
+            map_position = getRandomInt(0,data.items.length);
+            data.items.splice(map_position, 0, "MAP");
+        }
+
+
         $(data.items).each(function(){
             var identifier = hex_md5("id"+this['type']+this['systemid']);
+
+            if (this == "MAP"){
+              $(container).append( map_item );
+              packeryInstance.appended( map_item );
+              NicAve.leaflet_map(data.locations);
+              return;
+            } else {
+            }
 
             if($('#'+identifier).length){
                 return;
@@ -241,17 +278,6 @@ var NicAve = {
             }
         })
 
-        if(data.locations && data.locations.length && !$('#mapcanvas').length ){
-            item = $('<div class="item"></div>');
-            item.attr("id", 'mapcanvas')
-            item.addClass('map')
-            item.width(500)
-            item.height(56*6)
-            item.attr("resized", true);
-            $(container).prepend( item );
-            packeryInstance.prepended( item );
-            NicAve.leaflet_map(data.locations);
-        }
 
         NicAve.build_music_chart();
 
