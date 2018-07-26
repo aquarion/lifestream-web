@@ -12,6 +12,7 @@ $blocksize = 100;
 $next = 30;
 $max = false;
 $append = "append";
+$ordered = false;
 
 $message = "";
 
@@ -40,7 +41,7 @@ if (count($split) && $split[0] == "search") {
 	if (!$ordered) {
 		$query->order_by_asc("date_created");
 	}
-
+	$from = $back = $forward = false;
 	// $back = date("/Y/m/d", $from - A_DAY);
 	// $forward = date("/Y/m/d", $from + A_DAY);
 	$up = "/";
