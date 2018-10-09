@@ -1,6 +1,59 @@
 <?PHP
 
-$settings = parse_ini_file(getcwd().'/etc/config.ini') or die('Config file couldn\'t be read');
+
+register_shutdown_function( "check_for_fatal" );
+
+function log_error( $num, $str, $file, $line, $context = null )
+{
+    log_exception( new ErrorException( $str, 0, $num, $file, $line ) );
+}
+
+function check_for_fatal()
+{
+    $error = error_get_last();
+    if ( $error["type"] == E_ERROR )
+        log_error( $error["type"], $error["message"], $error["file"], $error["line"] );
+}
+
+function log_exception(Exception $e){
+    if(defined('SEND_JSON_ERRORS') && SEND_JSON_ERRORS == true ){
+        send_json_error($e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine());
+    } else {
+        $file = str_replace(realpath(getcwd().DIRECTORY_SEPARATOR.'..'), '', $e->getFile());
+        header('HTTP/1.1 500 Something Bad');
+        header('content-type: text/html; charset: utf-8');
+        print "<div style='text-align: center;'>";
+        print "<h2 style='color: rgb(190, 50, 50);'>Exception Occured:</h2>";
+        print "<table style='width: 800px; display: inline-block;'>";
+        print "<tr style='background-color:rgb(230,230,230);'><th style='width: 80px;'>Type</th><td>" . get_class( $e ) . "</td></tr>";
+        print "<tr style='background-color:rgb(240,240,240);'><th>Message</th><td>{$e->getMessage()}</td></tr>";
+        print "<tr style='background-color:rgb(230,230,230);'><th>File</th><td>{$file}</td></tr>";
+        print "<tr style='background-color:rgb(240,240,240);'><th>Line</th><td>{$e->getLine()}</td></tr>";
+        print "</table></div>";
+        die();
+    }
+}
+
+function send_json_error($errno, $errstr, $errfile, $errline ){
+
+    $file = str_replace(realpath(getcwd().DIRECTORY_SEPARATOR.'..'), '', $errfile);
+    header('HTTP/1.1 500 Something Bad');
+    header('content-type: application/json; charset: utf-8');
+    echo json_encode(array('response' => 500, 'message' => $errstr, 'file' => $file, 'line' => $errline));
+    error_log("JSON Error: [{$_SERVER['HTTP_HOST']}] {$errstr} in {$errfile}:{$errline}");
+    die();
+    // throw new ErrorException($errstr, $errno, 0, $errfile, $errline);
+}
+
+
+set_error_handler('log_error');
+set_exception_handler( "log_exception" );
+
+list($scriptPath) = get_included_files();
+$settings = @parse_ini_file(__DIR__.'/../etc/config.ini');
+if(!$settings){
+    throw Exception('Config file couldn\'t be read');
+}
 
 
 include("idiorm.php");
@@ -13,6 +66,7 @@ define("A_MONTH", 60*60*24*30);
 define("A_YEAR", 60*60*24*364);
 
 define("IMAGE_ROOT", $settings['image_root']);
+define("LIFESTREAM", $settings['lifestream_dir']);
 
 function get_start_and_end_date_from_week($w, $y)
 {
@@ -323,7 +377,7 @@ function getDatabase()
 
 function lifestream_config($area, $item)
 {
-    $config = parse_ini_file("../config.ini", true);
+    $config = parse_ini_file(LIFESTREAM."/config.ini", true);
     return $config[$area][$item];
 }
 
@@ -429,4 +483,54 @@ function addEntry( // THis is a conversion of the same function in the python im
         $record->save();
     }
     // error_log(ORM::get_last_query());
+}
+
+
+// z
+//     def add_location(self, timestamp, source, lat, lon, title, icon=False):
+    function add_location($timestamp, $source, $lat, $lon, $title, $icon=False, $alt=null, $fulldata_json = null, $device = 'unset', $accuracy = 0){
+//         l_sql = u'replace into lifestream_locations (`id`, `source`, `lat`, `long`, `lat_vague`, `long_vague`, `timestamp`, `accuracy`, `title`, `icon`) values (%s, %s, %s, %s, %s, %s, %s, 1, %s, %s);'
+        // ORM::configure('id_column_overrides', array(
+        //     'lifestream_locations' => array('id', 'source', 'device')
+        // ));
+
+        $record = ORM::for_table('lifestream_locations')->create();
+        // +------------+---------------------+------+-----+---------+-------+
+        // | Field      | Type                | Null | Key | Default | Extra |
+        // +------------+---------------------+------+-----+---------+-------+
+        // | id         | bigint(20) unsigned | NO   | PRI | NULL    |       |
+        // | source     | varchar(255)        | NO   | PRI | NULL    |       |
+        // | lat        | double              | YES  |     | NULL    |       |
+        // | long       | double              | YES  |     | NULL    |       |
+        // | alt        | int(11)             | YES  |     | NULL    |       |
+        // | alt_vague  | int(11)             | YES  |     | NULL    |       |
+        // | lat_vague  | double              | YES  |     | NULL    |       |
+        // | long_vague | double              | YES  |     | NULL    |       |
+        // | timestamp  | datetime            | NO   |     | NULL    |       |
+        // | accuracy   | int(11)             | NO   |     | NULL    |       |
+        // | title      | varchar(255)        | YES  |     | NULL    |       |
+        // | icon       | varchar(255)        | YES  |     | NULL    |       |
+        // +------------+---------------------+------+-----+---------+-------+
+
+        $record->set('id', $timestamp);
+        $record->set('source', $source);
+        $record->set('device', $device);
+        $record->set('accuracy', $accuracy);
+        $record->set('lat', $lat);
+        $record->set('long', $lon);
+        $record->set('alt', $alt);
+        $record->set('lat_vague', round($lat, 2)); 
+        $record->set('long_vague', round($lon, 2)); 
+        $record->set('alt_vague', $alt ? round($alt, 2) : null); 
+        $record->set('timestamp', date(DATE_RFC3339, $timestamp));     
+        $record->set('fulldata_json', $fulldata_json);
+        $record->set('icon', $icon);
+        $record->save();
+}
+
+function raw_location_data($type, $data){
+    $record = ORM::for_table('owntracks_unhandled')->create();
+    $record->set('type', $type);
+    $record->set('fulldata_json', json_encode($data));
+    $record->save();
 }

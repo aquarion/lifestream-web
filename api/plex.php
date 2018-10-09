@@ -1,7 +1,11 @@
 <?PHP
-$json = file_get_contents('php://input');
+
+define('SEND_JSON_ERRORS', true);
+
 header('content-type: text/html; charset: utf-8');
-require "../web/library.php";
+require "../lib/lifestream.inc.php";
+
+$json = file_get_contents('php://input');
 
 getDatabase();
 ORM::configure('logging', true);
@@ -12,6 +16,9 @@ $scrobble_users = explode(',', lifestream_config('plex', 'scrobble_users'));
 $slack_channel  = lifestream_config('plex', 'slack_channel');
 $slack_botname  = lifestream_config('plex', 'slack_botname');
 
+if(!isset($_POST['payload'])){
+    throw new ErrorException('Could not find payload in posted values');
+}
 $action = json_decode($_POST['payload'], true);
 
 // $log = date("r")."\n";
@@ -54,7 +61,7 @@ switch ($action['event']) {
 }
 
 
-
+echo json_encode(array('response' => 200, 'message' => 'OK'));
 
 /*Array
 (

@@ -1,6 +1,6 @@
 <?PHP
-header('content-type: text/html; charset: utf-8');
-ini_set('display_errors', 'on');
+define('SEND_JSON_ERRORS', true);
+header('content-type: application/json; charset: utf-8');
 require("lib/lifestream.inc.php");
 
 getDatabase();

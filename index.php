@@ -22,11 +22,11 @@ $ordered = false;
 $title = false;
 $date_point = false;
 
-if ($split[0] == 'search'){ // One Year
+if (count($split) > 0 && $split[0] == 'search'){ // One Year
 	$today = mktime(0,0,0, 1, 1, $split[0]);
 	$format = "/Y/m/d";
 	$display_format = "\Y\e\a\r \o\f Y";
-} elseif (count($split) == 1){ // One Year
+} elseif (count($split) == 1 && is_numeric($split[0])){ // One Year
 	$today = mktime(0,0,0, 1, 1, $split[0]);
 	$format = "/Y/m/d";
 	$display_format = "\Y\e\a\r \o\f Y";
@@ -50,10 +50,13 @@ if ($split[0] == 'search'){ // One Year
 		$format = "/Y/m/d";
 		$display_format = "l jS F Y";
 	}
-} else {  // Last 200
+} elseif(count($split) == 0) {  // Last 200
 	$today = time();
 	$format = "/Y/m/d";
 	$display_format = "l jS F Y";
+} else {
+    header('HTTP/1.1 404 Something Missing');
+	die("Four, Oh Four!");
 }
 
 if(!$date_point){
@@ -74,19 +77,32 @@ if(!$date_point){
 	<link href='//fonts.googleapis.com/css?family=PT+Mono|Raleway|Comfortaa' rel='stylesheet' type='text/css'>
 	<link rel="stylesheet" href="/assets/css/style.css">
 
+	<!-- <Icons> -->
+	<link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/apple-touch-icon.png">
+	<link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32x32.png">
+	<link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/favicon-16x16.png">
+	<link rel="manifest" href="/assets/icons/site.webmanifest">
+	<link rel="mask-icon" href="/assets/icons/safari-pinned-tab.svg" color="#2b5797">
+	<link rel="shortcut icon" href="/assets/icons/favicon.ico">
+	<meta name="apple-mobile-web-app-title" content="Nicholas Avenell dot Com">
+	<meta name="application-name" content="Nicholas Avenell dot Com">
+	<meta name="msapplication-TileColor" content="#2b5797">
+	<meta name="msapplication-config" content="/assets/icons/browserconfig.xml">
+	<meta name="theme-color" content="#559cc8">
+	<!-- </Icons> -->
 
 	<!-- Map stuff -->
 	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.1.0/dist/leaflet.css"  crossorigin=""/>
 	<script src="https://unpkg.com/leaflet@1.1.0/dist/leaflet.js" crossorigin=""></script>
 	<script type="text/javascript" src="/assets/js/webgl-heatmap-master/webgl-heatmap.js"></script>
 	<script type="text/javascript" src="/assets/js/leaflet-webgl-heatmap-master/dist/leaflet-webgl-heatmap.min.js"></script>
-	<script type="text/javascript" src="http://maps.stamen.com/js/tile.stamen.js?v1.3.0"></script>
+	<script type="text/javascript" src="https://stamen-maps.a.ssl.fastly.net/js/tile.stamen.js"></script>
 	<!-- /Map stuff -->
 
 	<script type="text/javascript" src="/assets/js/library.js"></script>
 	<script type="text/javascript" src="/assets/js/formatting.js"></script>
 	<script type="text/javascript" src="/assets/js/nicave.js"></script>
-	<link rel="stylesheet" href="http://dailyphoto.aquarionics.com/background.css.php?from=<?PHP echo date("Y-m-d", $today) ?>"/>
+	<link rel="stylesheet" href="https://dailyphoto.aquarionics.com/background.css.php?from=<?PHP echo date("Y-m-d", $today) ?>"/>
 	<?PHP include("google_analytics.html"); ?>
 
 
@@ -105,14 +121,14 @@ if(!$date_point){
 	named <a href="http://wiki.aquarionics.com/walrus">Project Walrus</a>.</p>
 <p>
 	<p class="buttons">
-		<a href="http://www.twitter.com/aquarion"><img src="http://art.istic.net/iconography/elegantmediaicons/PNG/twitter.png" title="" alt="" /></a>
-		<a href="http://www.linkedin.com/in/webperson"><img src="http://art.istic.net/iconography/elegantmediaicons/PNG/linkedin.png" title="" alt="" /></a>
-		<a href="http://www.facebook.com/aquarion"><img src="http://art.istic.net/iconography/elegantmediaicons/PNG/facebook.png" title="" alt="" /></a>
-		<a href="http://www.last.fm/user/Aquarion"><img src="http://art.istic.net/iconography/elegantmediaicons/PNG/lastfm.png" title="" alt="" /></a>
-		<a href="http://www.flickr.com/people/aquarion"><img src="http://art.istic.net/iconography/elegantmediaicons/PNG/flickr.png" title="" alt="" /></a>
-		<a href="http://aquarion.tumblr.com/"><img src="http://art.istic.net/iconography/elegantmediaicons/PNG/tumblr.png" title="" alt="" /></a>
-		<a href="http://www.reddit.com/user/Aquarion/"><img src="http://art.istic.net/iconography/elegantmediaicons/PNG/reddit.png" title="" alt="" /></a>
-		<a href="https://plus.google.com/106823138194139107308/posts"><img src="http://art.istic.net/iconography/elegantmediaicons/PNG/google.png" title="" alt="" /></a>
+		<a href="http://www.twitter.com/aquarion"><img src="//art.istic.net/iconography/elegantmediaicons/PNG/twitter.png" title="" alt="" /></a>
+		<a href="http://www.linkedin.com/in/webperson"><img src="//art.istic.net/iconography/elegantmediaicons/PNG/linkedin.png" title="" alt="" /></a>
+		<a href="http://www.facebook.com/aquarion"><img src="//art.istic.net/iconography/elegantmediaicons/PNG/facebook.png" title="" alt="" /></a>
+		<a href="http://www.last.fm/user/Aquarion"><img src="//art.istic.net/iconography/elegantmediaicons/PNG/lastfm.png" title="" alt="" /></a>
+		<a href="http://www.flickr.com/people/aquarion"><img src="//art.istic.net/iconography/elegantmediaicons/PNG/flickr.png" title="" alt="" /></a>
+		<a href="http://aquarion.tumblr.com/"><img src="//art.istic.net/iconography/elegantmediaicons/PNG/tumblr.png" title="" alt="" /></a>
+		<a href="http://www.reddit.com/user/Aquarion/"><img src="//art.istic.net/iconography/elegantmediaicons/PNG/reddit.png" title="" alt="" /></a>
+		<a href="https://plus.google.com/106823138194139107308/posts"><img src="//art.istic.net/iconography/elegantmediaicons/PNG/google.png" title="" alt="" /></a>
 	</p>
 </p>
 
