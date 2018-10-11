@@ -1,6 +1,5 @@
 <?PHP
 
-
 register_shutdown_function( "check_for_fatal" );
 
 function log_error( $num, $str, $file, $line, $context = null )
@@ -15,9 +14,16 @@ function check_for_fatal()
         log_error( $error["type"], $error["message"], $error["file"], $error["line"] );
 }
 
-function log_exception(Exception $e){
+function log_exception($e){
+    if (!is_a($e, 'Exception')){
+        var_dump($e);
+        debug_print_backtrace();
+        die();
+    }
     if(defined('SEND_JSON_ERRORS') && SEND_JSON_ERRORS == true ){
         send_json_error($e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine());
+    } elseif(defined('SEND_TEXT_ERRORS') && SEND_TEXT_ERRORS == true ){
+        send_text_error($e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine());
     } else {
         $file = str_replace(realpath(getcwd().DIRECTORY_SEPARATOR.'..'), '', $e->getFile());
         header('HTTP/1.1 500 Something Bad');
@@ -41,6 +47,14 @@ function send_json_error($errno, $errstr, $errfile, $errline ){
     header('content-type: application/json; charset: utf-8');
     echo json_encode(array('response' => 500, 'message' => $errstr, 'file' => $file, 'line' => $errline));
     error_log("JSON Error: [{$_SERVER['HTTP_HOST']}] {$errstr} in {$errfile}:{$errline}");
+    die();
+    // throw new ErrorException($errstr, $errno, 0, $errfile, $errline);
+}
+
+function send_text_error($errno, $errstr, $errfile, $errline ){
+    $file = str_replace(realpath(getcwd().DIRECTORY_SEPARATOR.'..'), '', $errfile);
+    print "{$errstr} in {$file} at {$errline}";
+        debug_print_backtrace();
     die();
     // throw new ErrorException($errstr, $errno, 0, $errfile, $errline);
 }
@@ -525,7 +539,7 @@ function addEntry( // THis is a conversion of the same function in the python im
         $record->set('timestamp', date(DATE_RFC3339, $timestamp));     
         $record->set('fulldata_json', $fulldata_json);
         $record->set('icon', $icon);
-        $record->save();
+        $record->save(true); // save with replace
 }
 
 function raw_location_data($type, $data){

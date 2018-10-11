@@ -1626,7 +1626,7 @@
          * Save any fields which have been modified on this object
          * to the database.
          */
-        public function save() {
+        public function save($replace=false) {
             $query = array();
 
             // remove any expression fields as they are already baked into the query
@@ -1639,8 +1639,10 @@
                 }
                 $query = $this->_build_update();
                 $values[] = $this->id();
-            } else { // INSERT
+            } elseif($replace == false) { // INSERT
                 $query = $this->_build_insert();
+            } elseif($replace) { // REPLACE
+                $query = $this->_build_replace();
             }
 
             $success = self::_execute($query, $values, $this->_connection_name);
@@ -1699,6 +1701,25 @@
                 $query[] = 'RETURNING ' . $this->_quote_identifier($this->_get_id_column_name());
             }
 
+            return join(" ", $query);
+        }
+
+        /**
+         * Build an © query
+         */
+        protected function _build_replace() {
+            $query[] = "REPLACE INTO";
+            $query[] = $this->_quote_identifier($this->_table_name);
+            $field_list = array_map(array($this, '_quote_identifier'), array_keys($this->_dirty_fields));
+            $query[] = "(" . join(", ", $field_list) . ")";
+            $query[] = "VALUES";
+
+            $placeholders = $this->_create_placeholders($this->_dirty_fields);
+            $query[] = "({$placeholders})";
+
+            if (self::$_db[$this->_connection_name]->getAttribute(PDO::ATTR_DRIVER_NAME) == 'pgsql') {
+                $query[] = 'RETURNING ' . $this->_quote_identifier($this->_get_id_column_name());
+            }
             return join(" ", $query);
         }
 

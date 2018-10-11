@@ -53,7 +53,7 @@ $data =  @json_decode($payload, true);
 
 
         add_location(
-            microtime(true) * 100, 
+            $data['tst'], 
             'owntracks', 
             $data['lat'], $data['lon'], 
             isset($data['inregions']) ? implode(' / ', $data['inregions']) : '', 
