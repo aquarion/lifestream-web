@@ -443,3 +443,12 @@ border-image: url(//art.istic.net/images/lt_teal_frame_wide.gif) 17 17 17 17 fil
     border-left: 1px solid #EEE;
     list-style: none;
 }
+
+
+.instagram .caption {
+	font-size: 8pt;
+    position: absolute;
+    bottom: 8pt;
+    height: 2.5em;
+    width: 100%;
+}

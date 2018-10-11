@@ -292,6 +292,19 @@ var Formatting = {
 		return element;
 	},
 
+	'instagram' : function(object, element){
+
+		element.addClass("photo");
+		element.css("background-image", "url('"+object.image+"')");
+		element.css("background-position", "top center");
+		element.css("height", 4*h);
+		element.ready(Formatting.photoresize);
+
+		element.html('<div class="caption">'+object.title+'</div>')
+
+		return element;
+	},
+
 	'Raptr' : function(object, element){
 
 		element.addClass("gaming");
