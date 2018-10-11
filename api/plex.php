@@ -16,10 +16,20 @@ $scrobble_users = explode(',', lifestream_config('plex', 'scrobble_users'));
 $slack_channel  = lifestream_config('plex', 'slack_channel');
 $slack_botname  = lifestream_config('plex', 'slack_botname');
 
+
+
 if(!isset($_POST['payload'])){
+        
+    error_log("------\n", FILE_APPEND);
+    error_log($json, FILE_APPEND);
+    error_log(print_r($_POST, true), FILE_APPEND);
+    error_log(print_r($_GET, true), FILE_APPEND);
+    error_log(print_r($_SERVER, true), FILE_APPEND);
+    error_log("------\n", FILE_APPEND);
     throw new ErrorException('Could not find payload in posted values');
 }
 $action = json_decode($_POST['payload'], true);
+
 
 // $log = date("r")."\n";
 // $log .= print_r($action, 1)."\n-------\n";
