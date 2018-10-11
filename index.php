@@ -107,11 +107,26 @@ if(!$date_point){
 
 
 	<title>Nicholas Avenell - Web Person</title>
+
+<style type="text/css">
+
+span#glasses {
+	background: url('https://nicholasavenell.com/assets/icons/mstile-70x70.png');
+    background-size: cover;
+	background-repeat: no-repeat;
+	background-position: center;
+	height: 1em;
+	width: 1em;
+	display: inline-block;
+}
+
+</style>
+
 </head>
 <body>
 
 <header>
-<h1>Nicholas Avenell</h1>
+<h1>Nicholas <span id="glasses">&nbsp;</span> Avenell</h1>
 <p>Is still working on this site</p>
 <p>
 	I am Nicholas Avenell. I am a professional geek. I've worked for <a href="http://wiki.aquarionics.com/placesIveWorked">various companies</a>, 
@@ -128,7 +143,6 @@ if(!$date_point){
 		<a href="http://www.flickr.com/people/aquarion"><img src="//art.istic.net/iconography/elegantmediaicons/PNG/flickr.png" title="" alt="" /></a>
 		<a href="http://aquarion.tumblr.com/"><img src="//art.istic.net/iconography/elegantmediaicons/PNG/tumblr.png" title="" alt="" /></a>
 		<a href="http://www.reddit.com/user/Aquarion/"><img src="//art.istic.net/iconography/elegantmediaicons/PNG/reddit.png" title="" alt="" /></a>
-		<a href="https://plus.google.com/106823138194139107308/posts"><img src="//art.istic.net/iconography/elegantmediaicons/PNG/google.png" title="" alt="" /></a>
 	</p>
 </p>
 
