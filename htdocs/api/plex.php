@@ -3,7 +3,7 @@
 define('SEND_JSON_ERRORS', true);
 
 header('content-type: text/html; charset: utf-8');
-require "../lib/lifestream.inc.php";
+require "../../lib/lifestream.inc.php";
 
 $json = file_get_contents('php://input');
 

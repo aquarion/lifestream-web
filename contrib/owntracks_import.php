@@ -21,7 +21,6 @@ $records = ORM::for_table('owntracks_unhandled')->where('type', 'location')->fin
 
 foreach($records as $i => $record){
 
-
     $data = json_decode($record->get('fulldata_json'));
 
     add_location(

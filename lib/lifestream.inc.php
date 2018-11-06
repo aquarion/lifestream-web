@@ -508,6 +508,20 @@ function addEntry( // THis is a conversion of the same function in the python im
         //     'lifestream_locations' => array('id', 'source', 'device')
         // ));
 
+        $datetime = date(DATE_RFC3339, $timestamp);
+
+
+        $last = ORM::for_table('lifestream_locations')->where("source", $source)->where_lt('timestamp', $datetime)->order_by_desc("timestamp")->find_one();
+        if (!$last){
+            // print "Keeping first";
+        } elseif (round($last->get('lat_vague') , 1) == round($lat, 1)
+            && round($last->get('lat_vague') , 1) == round($lon, 1) ){
+            // print "Not Keeping ".$datetime." at ".round($lat, 2).'/'.round($lon, 2).' ';
+            return false;
+        } else {
+            // print "--- Keeping ".$datetime." at ".round($lat, 2).'/'.round($lon, 2).' ';
+        }
+
         $record = ORM::for_table('lifestream_locations')->create();
         // +------------+---------------------+------+-----+---------+-------+
         // | Field      | Type                | Null | Key | Default | Extra |

@@ -5,7 +5,7 @@
 header("Content-type: application/json");
 define('SEND_JSON_ERRORS', true);
 
-require "../lib/lifestream.inc.php";
+require "../../lib/lifestream.inc.php";
 
 $json = file_get_contents('php://input');
 

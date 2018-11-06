@@ -1,7 +1,7 @@
 <?PHP
 define('SEND_JSON_ERRORS', true);
 header('content-type: application/json; charset: utf-8');
-require("lib/lifestream.inc.php");
+require("../lib/lifestream.inc.php");
 
 getDatabase();
 ORM::configure('logging', true);

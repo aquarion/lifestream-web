@@ -1,6 +1,6 @@
 <?php
 
-require("lib/lifestream.inc.php");
+require("../lib/lifestream.inc.php");
 
 getDatabase();
 ORM::configure('logging', true);
