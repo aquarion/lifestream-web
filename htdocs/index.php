@@ -23,7 +23,7 @@ $title = false;
 $date_point = false;
 
 if (count($split) > 0 && $split[0] == 'search'){ // One Year
-	$today = mktime(0,0,0, 1, 1, $split[0]);
+	$today = time();
 	$format = "/Y/m/d";
 	$display_format = "\Y\e\a\r \o\f Y";
 } elseif (count($split) == 1 && is_numeric($split[0])){ // One Year
