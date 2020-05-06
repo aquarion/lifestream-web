@@ -10,15 +10,21 @@ require "../../lib/lifestream.inc.php";
 $json = file_get_contents('php://input');
 
 getDatabase();
-ORM::configure('logging', true);
+ORM::configure('logging', true);    
 ORM::configure('driver_options', array(PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8'));
 $query = ORM::for_table('lifestream');
+ORM::configure('logger', function($log_string, $query_time) {
+    error_log($log_string . ' in ' . $query_time);
+    send_to_slack($message, $slack_botname, "#general", ":robot:");
+});
 
 $slack_channel  = lifestream_config('plex', 'slack_channel');
 $slack_botname  = lifestream_config('plex', 'slack_botname');
 
+// send_to_slack($json, $slack_botname, "#general", ":robot:");
 
 $payload = file_get_contents("php://input");
+
 $data =  @json_decode($payload, true);
 
     if ($data['_type'] == 'location') {
@@ -51,17 +57,17 @@ $data =  @json_decode($payload, true);
         // topic (only in HTTP payloads) contains the original publish topic (e.g. owntracks/jane/phone). (iOS)
         // inregions contains a list of regions the device is currently in (e.g. ["Home","Garage"]). Might be empty. (iOS,Android/list of strings/optional)
 
-
+        //add_location($timestamp, $source, $lat, $lon, $title, $icon=False, $alt=0, $fulldata_json = null, $device = 'unset', $accuracy = 0)
         add_location(
-            $data['tst'], 
-            'owntracks', 
-            $data['lat'], $data['lon'], 
-            isset($data['inregions']) ? implode(' / ', $data['inregions']) : '', 
-            //$icon=False, 
-            $alt=$data['alt'], 
-            $fulldata_json = json_encode($data),
-            $device = $data['tid'],
-            $accuracy=$data['acc']);
+            $data['tst'],  //timestamp
+            'owntracks',   //source
+            $data['lat'], $data['lon'],  // Lat, Lon
+            isset($data['inregions']) ? implode(' / ', $data['inregions']) : '', #Title
+            $icon=False, # Icon
+            $alt=$data['alt'], # Alt
+            $fulldata_json = json_encode($data), # Fulldata
+            $device = $data['tid'], # Device
+            $accuracy=$data['acc']); #accuracy
     }
     raw_location_data($data['_type'], $data);
 

@@ -2,6 +2,8 @@
 
 register_shutdown_function( "check_for_fatal" );
 
+define("DATE_MYSQL", "Y-m-d H:i:s");
+
 function log_error( $num, $str, $file, $line, $context = null )
 {
     log_exception( new ErrorException( $str, 0, $num, $file, $line ) );
@@ -14,12 +16,20 @@ function check_for_fatal()
         log_error( $error["type"], $error["message"], $error["file"], $error["line"] );
 }
 
+
+
 function log_exception($e){
     if (!is_a($e, 'Exception')){
+        send_to_slack(var_dump($e, true), 'Error', "#general", ":robot:");
+
         var_dump($e);
         debug_print_backtrace();
         die();
     }
+
+        
+    // send_to_slack($e->getTraceAsString(), 'Exception', "#general", ":robot:");
+
     if(defined('SEND_JSON_ERRORS') && SEND_JSON_ERRORS == true ){
         send_json_error($e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine());
     } elseif(defined('SEND_TEXT_ERRORS') && SEND_TEXT_ERRORS == true ){
@@ -502,13 +512,13 @@ function addEntry( // THis is a conversion of the same function in the python im
 
 // z
 //     def add_location(self, timestamp, source, lat, lon, title, icon=False):
-    function add_location($timestamp, $source, $lat, $lon, $title, $icon=False, $alt=null, $fulldata_json = null, $device = 'unset', $accuracy = 0){
+    function add_location($timestamp, $source, $lat, $lon, $title, $icon=False, $alt=0, $fulldata_json = null, $device = 'unset', $accuracy = 0){
 //         l_sql = u'replace into lifestream_locations (`id`, `source`, `lat`, `long`, `lat_vague`, `long_vague`, `timestamp`, `accuracy`, `title`, `icon`) values (%s, %s, %s, %s, %s, %s, %s, 1, %s, %s);'
         // ORM::configure('id_column_overrides', array(
         //     'lifestream_locations' => array('id', 'source', 'device')
         // ));
 
-        $datetime = date(DATE_RFC3339, $timestamp);
+        $datetime = date(DATE_MYSQL, $timestamp);
 
 
         $last = ORM::for_table('lifestream_locations')->where("source", $source)->where_lt('timestamp', $datetime)->order_by_desc("timestamp")->find_one();
@@ -521,7 +531,6 @@ function addEntry( // THis is a conversion of the same function in the python im
         } else {
             // print "--- Keeping ".$datetime." at ".round($lat, 2).'/'.round($lon, 2).' ';
         }
-
         $record = ORM::for_table('lifestream_locations')->create();
         // +------------+---------------------+------+-----+---------+-------+
         // | Field      | Type                | Null | Key | Default | Extra |
@@ -550,7 +559,7 @@ function addEntry( // THis is a conversion of the same function in the python im
         $record->set('lat_vague', round($lat, 2)); 
         $record->set('long_vague', round($lon, 2)); 
         $record->set('alt_vague', $alt ? round($alt, 2) : null); 
-        $record->set('timestamp', date(DATE_RFC3339, $timestamp));     
+        $record->set('timestamp', date(DATE_MYSQL, $timestamp));     
         $record->set('fulldata_json', $fulldata_json);
         $record->set('icon', $icon);
         $record->save(true); // save with replace
