@@ -17,7 +17,7 @@ var NicAve = {
     music_chart : false,
 
     init : function(){
-        google.setOnLoadCallback(NicAve.loadTiles);
+        NicAve.loadTiles();
     },
 
     loadTiles : function(){

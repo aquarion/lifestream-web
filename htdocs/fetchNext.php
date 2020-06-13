@@ -23,7 +23,7 @@ if (isset($_REQUEST['after'])) {
 
 $query->where_not_null("title");
 //$query->where_not_equal("source", "tumblr");
-// $query->where_not_equal("source", "lastfm");
+$query->where_not_equal("source", "lastfm");
 
 if (isset($_REQUEST['path'])) {
 	$split = explode("/", $_REQUEST['path']);
