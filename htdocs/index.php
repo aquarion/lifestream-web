@@ -55,8 +55,10 @@ if (count($split) > 0 && $split[0] == 'search'){ // One Year
 	$format = "/Y/m/d";
 	$display_format = "l jS F Y";
 } else {
-    header('HTTP/1.1 404 Something Missing');
-	die("Four, Oh Four!");
+    #header('Status: 404 Not Found');
+    #eader('HTTP/1.1 404 Something Missing');
+    http_response_code(404);
+    die();
 }
 
 if(!$date_point){
@@ -70,7 +72,7 @@ if(!$date_point){
 	<script src="//code.jquery.com/jquery-1.10.2.min.js"></script>
 	<script src="//cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.min.js"></script>
 	<script src="/assets/js/packery.pkgd.min.js"></script>
-	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+	<!-- script type="text/javascript" src="https://www.google.com/jsapi"></script -->
 	<script src="//twemoji.maxcdn.com/2/twemoji.min.js?2.7"></script>
 	<script src="/assets/libs/md5-min.js"></script>
 
