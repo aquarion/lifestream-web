@@ -141,11 +141,11 @@ span#glasses {
 		<a href="http://www.twitter.com/aquarion"><img src="//art.istic.net/iconography/elegantmediaicons/PNG/twitter.png" title="" alt="" /></a>
 		<a href="http://www.linkedin.com/in/webperson"><img src="//art.istic.net/iconography/elegantmediaicons/PNG/linkedin.png" title="" alt="" /></a>
 		<a href="http://www.facebook.com/aquarion"><img src="//art.istic.net/iconography/elegantmediaicons/PNG/facebook.png" title="" alt="" /></a>
-		<a href="http://www.last.fm/user/Aquarion"><img src="//art.istic.net/iconography/elegantmediaicons/PNG/lastfm.png" title="" alt="" /></a>
+	<!--	<a href="http://www.last.fm/user/Aquarion"><img src="//art.istic.net/iconography/elegantmediaicons/PNG/lastfm.png" title="" alt="" /></a>
 		<a href="http://www.flickr.com/people/aquarion"><img src="//art.istic.net/iconography/elegantmediaicons/PNG/flickr.png" title="" alt="" /></a>
 		<a href="http://aquarion.tumblr.com/"><img src="//art.istic.net/iconography/elegantmediaicons/PNG/tumblr.png" title="" alt="" /></a>
 		<a href="http://www.reddit.com/user/Aquarion/"><img src="//art.istic.net/iconography/elegantmediaicons/PNG/reddit.png" title="" alt="" /></a>
-	</p>
+	</p>a -->
 </p>
 
 <p id="message" />

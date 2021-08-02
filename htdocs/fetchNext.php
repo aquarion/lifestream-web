@@ -35,6 +35,9 @@ if (isset($_REQUEST['path'])) {
 if (count($split) && $split[0] == "search") {
 
 	define("DO_LOCATIONS", false);
+
+	$split[1] = urldecode($split[1]);
+
 	$message = $title = sprintf("Search for \"%s\"", $split[1]);
 	$query->where_like("title", sprintf("%%%s%%", $split[1]));
 
