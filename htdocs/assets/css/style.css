@@ -367,6 +367,11 @@ border-image: url(//art.istic.net/images/lt_teal_frame_wide.gif) 17 17 17 17 fil
 	background-position: top center;
 }
 
+.FFXIV_achivement {
+	background-image: url('https://art.istic.net/iconography/games/ffxiv.jpg');
+
+}
+
 .achivement .frame {
 	/*background-image: url('https://art.istic.net/iconography/games/destiny.png');*/
 	/*background-size: contain;*/
