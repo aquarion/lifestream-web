@@ -287,7 +287,7 @@ var NicAve = {
                 // item.html(item.outerHeight()+'x'+item.outerWidth());
                 // return;
             }
-            // if(!item.hasClass("photo") && !item.hasClass("achivement")){
+            // if(!item.hasClass("photo") && !item.hasClass("achievement")){
 
                 h = Formatting.h();
                 w = Formatting.w();

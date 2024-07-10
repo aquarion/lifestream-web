@@ -7,7 +7,7 @@ var Formatting = {
 	'h' : function(){ return h },
 	'w' : function(){ return w },
 
-	'achivement' : function(object, element){
+	'achievement' : function(object, element){
 
 		if(element.hasClass("Raptr")){
 			return element;
@@ -20,7 +20,7 @@ var Formatting = {
 		fulldata = JSON.parse(object.fulldata_json)
 		
 
-		element.addClass("achivement");
+		element.addClass("achievement");
 
 
 		if ( title.search(" --- ") !== -1 ){
@@ -64,7 +64,7 @@ var Formatting = {
 		// element.css("background-image", "url('https://art.istic.net/iconography/games/destiny.png')");
 		element.css("background-image", "url('https://www.bungie.net/" + fulldata.activity_info.pgcrImage + "')");
 		element.css("background-size", "cover");
-		element.addClass("achivement");
+		element.addClass("achievement");
 
 
 		delim = " --- "
@@ -98,7 +98,7 @@ var Formatting = {
 		fulldata = JSON.parse(object.fulldata_json)
 		
 
-		element.addClass("achivement");
+		element.addClass("achievement");
 
 
 		delim = " --- "
@@ -128,7 +128,7 @@ var Formatting = {
 
                 element.css("background-image", "url('"+object.image+"')");
                 element.css("background-size", "contain");
-                element.addClass("achivement");
+                element.addClass("achievement");
                 element.html("");
 
                 element.attr("title", (object.source+" "+object.type).capitalize()+": "+decodeEntities(object.title))
@@ -315,7 +315,7 @@ var Formatting = {
 
 	'Foursquare-Badge' : function(object, element){
 
-		element.addClass("achivement");
+		element.addClass("achievement");
 		element.css("background-image", "url('"+object.image+"')");
 		element.css("width", 1*w);
 		// element.css("height", 4*h);
@@ -379,6 +379,6 @@ var Formatting = {
 	}
 };
 
-Formatting.badge = Formatting.achivement;
-Formatting.gaming = Formatting.achivement;
+Formatting.badge = Formatting.achievement;
+Formatting.gaming = Formatting.achievement;
 Formatting.rapr = false;
