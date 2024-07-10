@@ -1,9 +1,12 @@
-<?PHP
-
-define('SEND_JSON_ERRORS', true);
+<?php
 
 header('content-type: text/html; charset: utf-8');
+require "../../vendor/autoload.php";
 require "../../lib/lifestream.inc.php";
+
+use PhpChannels\DiscordWebhook\Discord;
+
+define('SEND_JSON_ERRORS', true);
 
 $json = file_get_contents('php://input');
 
@@ -15,11 +18,12 @@ $query = ORM::for_table('lifestream');
 $scrobble_users = explode(',', lifestream_config('plex', 'scrobble_users'));
 $slack_channel  = lifestream_config('plex', 'slack_channel');
 $slack_botname  = lifestream_config('plex', 'slack_botname');
+$discord_announce_webhook  = lifestream_config('plex', 'discord_announce_webhook');
 
 
 
-if(!isset($_POST['payload'])){
-        
+if (!isset($_POST['payload'])) {
+
     error_log("------\n", FILE_APPEND);
     error_log($json, FILE_APPEND);
     error_log(print_r($_POST, true), FILE_APPEND);
@@ -54,12 +58,12 @@ if (isset($action['Metadata']['grandparentTitle'])) {
 switch ($action['event']) {
     case 'media.play':
         $message = $action['Account']['title']." Started watching ".$title;
-        send_to_slack($message, $slack_botname, $slack_channel, ":tv:");
+        // send_to_slack($message, $slack_botname, $slack_channel, ":tv:");
         break;
 
     case 'media.scrobble':
         $message = $action['Account']['title']." Finished watching ".$title;
-        send_to_slack($message, $slack_botname, $slack_channel, ":tv:");
+        // send_to_slack($message, $slack_botname, $slack_channel, ":tv:");
 
 
         if (in_array($action['Account']['title'], $scrobble_users)) {
@@ -68,6 +72,36 @@ switch ($action['event']) {
             $icon = "https://art.istic.net/iconography/plex.png";
             addEntry("Media", $guid, $message, "Plex", date("Y-m-d"), false, $icon, $fulldata_json = $action);
         }
+        break;
+
+    case 'library.new':
+
+        $message = Discord::message($discord_announce_webhook)
+        ->setUsername('Vis');
+
+        switch ($payload->Metadata->librarySectionType) {
+            case 'show':
+                $show = $payload->Metadata->grandparentTitle;
+                $series = $payload->Metadata->parentTitle;
+                $episode = $payload->Metadata->title;
+                $message->setTitle("New $show $series Episode: $episode");
+                $message->setDescription($payload->Metadata->summary);
+                $message->setThumbnail('https://app.plex.tv/9e432efb-371e-4bb6-b293-40806320701f0');
+                # code...
+                break;
+
+            default:
+                # code...
+                break;
+        }
+
+        $message->send();
+        // no break
+    default:
+        $data = "**************************************\n"
+            . print_r($_POST, true)."\n"
+            . print_r($_FILES, true);
+        file_put_contents("../../logs/plex.log", $data, FILE_APPEND);
 }
 
 

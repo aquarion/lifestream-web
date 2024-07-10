@@ -7,7 +7,7 @@ ORM::configure('logging', true);
 ORM::configure('driver_options', array(PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8'));
 $query = ORM::for_table('lifestream_locations');
 
-define("DAYS", 30);
+define("DAYS", 1);
 
 
 if(isset($_GET['year'])) {
@@ -34,7 +34,7 @@ foreach ($items as $row) {
         $row['long_vague'] = round($row['long'], 2);
     }
 
-    $key = $row['lat_vague']."/".$row['long_vague'];
+    $key = $row['lat']."/".$row['long'];
 
     if($row['title']) {
         $title = $row['title'].' - '.$row['timestamp'];
@@ -43,7 +43,7 @@ foreach ($items as $row) {
     }
 
     if($key !== $previous) {
-        $newentry = array("lat" => $row['lat_vague'], "long" => $row['long_vague'], 'title' => $title, 'source' => $row['source']);
+        $newentry = array("lat" => $row['lat'], "long" => $row['long'], 'title' => $title, 'source' => $row['source']);
         if($row['icon']) {
             $newentry['icon'] = $row['icon'];
         }
@@ -52,6 +52,7 @@ foreach ($items as $row) {
 
     $previous = $key;
 }
+
 
 $title = "Heatmap of locations". (isset($_GET['year']) ? ' for '.$_GET['year'] : ' last '.DAYS.' days');
 
@@ -99,6 +100,8 @@ var defaultIcon = L.icon({
 
 var heatmapLayer = false
 
+
+console.log(locations);
 
 function locations_to_latlngs(){
 
@@ -149,7 +152,7 @@ function leaflet_map(){
   map.fitBounds(bounds);
 
   var heatmap = new L.webGLHeatmap({ 
-    size : 5000,
+    size : 50,
     opacity : .7
   });
 

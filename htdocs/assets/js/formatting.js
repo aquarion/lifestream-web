@@ -1,6 +1,6 @@
 
-var h = 80;
-var w = h*1.77;
+var h = 100;
+var w = 100;
 
 var Formatting = {
 
@@ -43,8 +43,8 @@ var Formatting = {
 
 		element.attr("title", (object.source+" "+object.type).capitalize()+": "+title)
 
-		element.height(h*2);
-		element.width(w*1);
+		element.height(h);
+		element.width(w);
 
 
 

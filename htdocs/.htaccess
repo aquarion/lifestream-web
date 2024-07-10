@@ -1,14 +1,14 @@
 RewriteEngine On
 
-RewriteCond %{HTTP_HOST} ^nicholasavenell\.com [NC]
-RewriteCond %{SERVER_PORT} 80 
-RewriteRule ^(.*)$ https://nicholasavenell.com/$1 [R,L]
+#RewriteCond %{HTTP_HOST} ^nicholasavenell\.com [NC]
+#RewriteCond %{SERVER_PORT} 80 
+#RewriteRule ^(.*)$ https://nicholasavenell.com/$1 [R,L]
 
 RewriteRule assets.*	-	[L]
 RewriteRule favicon.ico	-	[L]
 RewriteRule index.php	-	[L]
 RewriteRule api -	[L]
-RewriteRule maps.php	-	[L]
+RewriteRule .*\.php	-	[L]
 RewriteRule fetchNext.php	-	[L]
 RewriteRule annual.* -	[L]
 RewriteRule .*	/index.php	[L]

@@ -1,25 +1,53 @@
-<?PHP
+<?php
 
-register_shutdown_function( "check_for_fatal" );
+register_shutdown_function("check_for_fatal");
 
 define("DATE_MYSQL", "Y-m-d H:i:s");
 
-function log_error( $num, $str, $file, $line, $context = null )
+require "idiorm/idiorm.php";
+
+
+define("AN_HOUR", 60*60);
+define("A_DAY", 60*60*24);
+define("A_WEEK", 60*60*24*7);
+define("A_MONTH", 60*60*24*30);
+define("A_YEAR", 60*60*24*364);
+
+
+set_error_handler('log_error');
+set_exception_handler("log_exception");
+
+list($scriptPath) = get_included_files();
+$settings = @parse_ini_file(__DIR__.'/../etc/config.ini');
+if(!$settings) {
+    throw Exception('Config file couldn\'t be read');
+}
+
+define("IMAGE_ROOT", $settings['image_root']);
+define("LIFESTREAM", $settings['lifestream_dir']);
+
+
+function log_error($num, $str, $file, $line, $context = null)
 {
-    log_exception( new ErrorException( $str, 0, $num, $file, $line ) );
+    log_exception(new ErrorException($str, 0, $num, $file, $line));
 }
 
 function check_for_fatal()
 {
     $error = error_get_last();
-    if ( $error["type"] == E_ERROR )
-        log_error( $error["type"], $error["message"], $error["file"], $error["line"] );
+    if ($error && $error["type"] == E_ERROR) {
+        log_error($error["type"], $error["message"], $error["file"], $error["line"]);
+    } elseif($error) {
+        debug_print_backtrace();
+        die("Error: ".$error);
+    }
 }
 
 
 
-function log_exception($e){
-    if (!is_a($e, 'Exception')){
+function log_exception($e)
+{
+    if (!is_a($e, 'Exception')) {
         send_to_slack(var_dump($e, true), 'Error', "#general", ":robot:");
 
         var_dump($e);
@@ -27,12 +55,12 @@ function log_exception($e){
         die();
     }
 
-        
+
     // send_to_slack($e->getTraceAsString(), 'Exception', "#general", ":robot:");
 
-    if(defined('SEND_JSON_ERRORS') && SEND_JSON_ERRORS == true ){
+    if(defined('SEND_JSON_ERRORS') && SEND_JSON_ERRORS == true) {
         send_json_error($e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine());
-    } elseif(defined('SEND_TEXT_ERRORS') && SEND_TEXT_ERRORS == true ){
+    } elseif(defined('SEND_TEXT_ERRORS') && SEND_TEXT_ERRORS == true) {
         send_text_error($e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine());
     } else {
         $file = str_replace(realpath(getcwd().DIRECTORY_SEPARATOR.'..'), '', $e->getFile());
@@ -41,7 +69,7 @@ function log_exception($e){
         print "<div style='text-align: center;'>";
         print "<h2 style='color: rgb(190, 50, 50);'>Exception Occured:</h2>";
         print "<table style='width: 800px; display: inline-block;'>";
-        print "<tr style='background-color:rgb(230,230,230);'><th style='width: 80px;'>Type</th><td>" . get_class( $e ) . "</td></tr>";
+        print "<tr style='background-color:rgb(230,230,230);'><th style='width: 80px;'>Type</th><td>" . get_class($e) . "</td></tr>";
         print "<tr style='background-color:rgb(240,240,240);'><th>Message</th><td>{$e->getMessage()}</td></tr>";
         print "<tr style='background-color:rgb(230,230,230);'><th>File</th><td>{$file}</td></tr>";
         print "<tr style='background-color:rgb(240,240,240);'><th>Line</th><td>{$e->getLine()}</td></tr>";
@@ -50,7 +78,8 @@ function log_exception($e){
     }
 }
 
-function send_json_error($errno, $errstr, $errfile, $errline ){
+function send_json_error($errno, $errstr, $errfile, $errline)
+{
 
     $file = str_replace(realpath(getcwd().DIRECTORY_SEPARATOR.'..'), '', $errfile);
     header('HTTP/1.1 500 Something Bad');
@@ -61,36 +90,15 @@ function send_json_error($errno, $errstr, $errfile, $errline ){
     // throw new ErrorException($errstr, $errno, 0, $errfile, $errline);
 }
 
-function send_text_error($errno, $errstr, $errfile, $errline ){
+function send_text_error($errno, $errstr, $errfile, $errline)
+{
     $file = str_replace(realpath(getcwd().DIRECTORY_SEPARATOR.'..'), '', $errfile);
     print "{$errstr} in {$file} at {$errline}";
-        debug_print_backtrace();
+    debug_print_backtrace();
     die();
     // throw new ErrorException($errstr, $errno, 0, $errfile, $errline);
 }
 
-
-set_error_handler('log_error');
-set_exception_handler( "log_exception" );
-
-list($scriptPath) = get_included_files();
-$settings = @parse_ini_file(__DIR__.'/../etc/config.ini');
-if(!$settings){
-    throw Exception('Config file couldn\'t be read');
-}
-
-
-include("idiorm.php");
-
-
-define("AN_HOUR", 60*60);
-define("A_DAY", 60*60*24);
-define("A_WEEK", 60*60*24*7);
-define("A_MONTH", 60*60*24*30);
-define("A_YEAR", 60*60*24*364);
-
-define("IMAGE_ROOT", $settings['image_root']);
-define("LIFESTREAM", $settings['lifestream_dir']);
 
 function get_start_and_end_date_from_week($w, $y)
 {
@@ -122,15 +130,15 @@ function niceTime($from, $to = false, $shortform = false)
         $since = $to - $from;
     }
 
-        // 60 // minute
-        // 3600 = hour
-        // 86400 = day
-        // 604800 = week
+    // 60 // minute
+    // 3600 = hour
+    // 86400 = day
+    // 604800 = week
 
     if ($shortform) {
-        $units = array ('sec','min','hr','day','wk','yr');
+        $units = array('sec','min','hr','day','wk','yr');
     } else {
-        $units = array ('second','minute','hour','day','week','year');
+        $units = array('second','minute','hour','day','week','year');
     }
 
     if ($since < 60) {
@@ -165,25 +173,25 @@ function niceTime($from, $to = false, $shortform = false)
         #$date .= " ".$plus;
     }
 
-        #$date .= " (".$since.")";
+    #$date .= " (".$since.")";
 
-        return $date;
+    return $date;
 }
 
 function process_lifestream_item($row)
 {
-  
+
     $row['title'] = str_replace("â€“", "--", $row['title']);
     $row['title'] = str_replace("â€”", "--", $row['title']);
 
     $text = $row['title'];
     $row['originaltext'] = $row['title'];
 
-    
 
-    
+
+
     $row['content'] = twitterFormat($text);
-    
+
     if (!$row['source']) {
         $row['source'] = $row['type'];
     }
@@ -192,7 +200,7 @@ function process_lifestream_item($row)
         case "lastfm":
             $icon = IMAGE_ROOT.'silk/music.png';
             break;
-        
+
         case "gaming":
             $icon = IMAGE_ROOT.'silk/joystick.png';
             if ($row['source'] == "Champions Online") {
@@ -205,8 +213,8 @@ function process_lifestream_item($row)
             } elseif ($row['source'] == "Raptr" && preg_match('#Champions Online! #', $text)) {
                 $row['content'] .= "#";
             } elseif ($row['source'] == "XLN Live Integration") {
-                    $icon = IMAGE_ROOT.'silk/controller.png';
-                    $row['url'] = "http://live.xbox.com/en-GB/profile/profile.aspx?pp=0&GamerTag=Jascain";
+                $icon = IMAGE_ROOT.'silk/controller.png';
+                $row['url'] = "http://live.xbox.com/en-GB/profile/profile.aspx?pp=0&GamerTag=Jascain";
             } elseif (preg_match('#\#wow#', $text)) {
                 $row['source'] = "World of Warcraft";
                 $icon = IMAGE_ROOT.'games/world_of_warcraft.png';
@@ -226,7 +234,7 @@ function process_lifestream_item($row)
                 $icon = IMAGE_ROOT.'silk/film_add.png';
                 $row['image'] = $icon;
                 $match = preg_match("#I\S* \w* a YouTube video -- (.*?) (http.*)#", $row['originaltext'], $matches);
-            
+
                 $row['content'] = sprintf('<a href="%s">%s</a>', $matches[2], $matches[1]);
                 $row['source'] = "YouTube";
             } elseif ($row['source'] == "LOVEFiLM.com Updates") {
@@ -240,20 +248,20 @@ function process_lifestream_item($row)
                 $row['source'] = "LOVEFiLM";
             } elseif (strtolower($row['source']) == "foursquare"
                     or strtolower($row['source']) == "foursquare-mayor"
-                  ) {
+            ) {
                 if ($row['source'] == "Foursquare-Mayor") {
-                      $icon = IMAGE_ROOT.'foursquare%20icons/mayorCrown.png';
+                    $icon = IMAGE_ROOT.'foursquare%20icons/mayorCrown.png';
                 } else {
                     $icon = IMAGE_ROOT.'foursquare%20icons/foursquare%20256x256.png';
                 }
-          
+
                 $row['content'] = preg_replace("/#\w*/", "", $row['originaltext']);
 
 
                 #preg_match("#(http://\S*)#", $row['content'], $matches);
 
                 #echo $row['originaltext']."<br/>";
-            
+
                 $imat = preg_match("#I'm at (.*?) \((.*?)\)\. (http://\S*)#", $row['originaltext'], $matches);
 
 
@@ -262,14 +270,14 @@ function process_lifestream_item($row)
                 } else {
                     $row['content'] = twitterFormat($row['content']);
                 }
-            
+
                 if (isset($matches[1])) {
                     $row['url'] = $matches[1];
                 }
                 #$row['content'] = preg_replace("#http://\S*#", "", $row['content']);
-            
+
                 #$row['content'] = twitterFormat($row['content']);
-            
+
                 #$row['url'] = "http://www.champions-online.com/character_profiles/user_characters/Jascain";
             } elseif ($row['source'] == "Kindle") {
                 $icon = IMAGE_ROOT.'silk/book_open.png';
@@ -289,7 +297,7 @@ function process_lifestream_item($row)
             break;
 
 
-      
+
 
 
         case "twitter":
@@ -324,26 +332,26 @@ function process_lifestream_item($row)
             break;
 
         case "code":
-                $icon = IMAGE_ROOT.'silk/application_osx_terminal.png';
-                $row['content'] = $row['content'];
+            $icon = IMAGE_ROOT.'silk/application_osx_terminal.png';
+            $row['content'] = $row['content'];
             break;
-  
+
         case "oyster":
-                $icon = IMAGE_ROOT.'tfl.png';
+            $icon = IMAGE_ROOT.'tfl.png';
             break;
 
         case "tumblr":
-                $icon = IMAGE_ROOT.'tumblr/tumblr_16.png';
-                $row['small_image'] = IMAGE_ROOT.'tumblr/tumblr_16.png';
+            $icon = IMAGE_ROOT.'tumblr/tumblr_16.png';
+            $row['small_image'] = IMAGE_ROOT.'tumblr/tumblr_16.png';
             break;
 
         default:
-              $icon = IMAGE_ROOT.'silk/asterisk_orange.png';
+            $icon = IMAGE_ROOT.'silk/asterisk_orange.png';
     }
 
     if ($row['image']) {
         $icon = $row['image'];
-            
+
         if (!isset($row['small_icon'])) {
             $row['small_icon'] = $icon;
         }
@@ -365,19 +373,18 @@ function process_lifestream_item($row)
 
 function twitterFormat($text)
 {
-    
 
     $text = nl2br(ereg_replace("[[:alpha:]]+://[^<>[:space:]]+[[:alnum:]/]", "<a href=\"\\0\">\\0</a>", $text));
     $text = preg_replace("#@(\w*)?#", "<a href=\"http://www.twitter.com/\\1\">@\\1</a>", $text);
-    
+
     $text = preg_replace("/#(\w*)/", "<a href=\"http://twitter.com/#search?q=%23\\1\">#\\1</a>", $text);
-    
+
     $text = preg_replace("#^Aquarion: #", "", $text);
 
     $text = preg_replace("#http://raptr.com/\w*#", "", $text);
     $text = preg_replace("#^Xbox Live: #", "", $text);
     $text = preg_replace("# \(Xbox Live Nation\)$#", "", $text);
-    
+
     return $text;
 }
 
@@ -385,7 +392,12 @@ function twitterFormat($text)
 function getDatabase()
 {
     global $settings;
-    $config = parse_ini_file($settings['lifestream_dir']."/config.ini", true);
+
+    $config_path = LIFESTREAM."/config.ini";
+    $config = parse_ini_file($config_path, true);
+    if(!$config) {
+        throw new Exception("Failed to find config at $config_path");
+    }
 
     ORM::configure(array(
         'connection_string' => sprintf('mysql:host=%s;dbname=%s', $config['database']['hostname'], $config['database']['database']),
@@ -401,7 +413,12 @@ function getDatabase()
 
 function lifestream_config($area, $item)
 {
-    $config = parse_ini_file(LIFESTREAM."/config.ini", true);
+
+    $config_path = LIFESTREAM."/config.ini";
+    $config = parse_ini_file($config_path, true);
+    if(!$config) {
+        throw new Exception("Failed to find config at $config_path");
+    }
     return $config[$area][$item];
 }
 
@@ -410,50 +427,50 @@ function send_to_slack($message, $name = "Lifestream", $channel = false, $icon =
 {
 
 
-        //Options
-        $token    = lifestream_config("slack", "token");
-        $domain   = lifestream_config("slack", "domain");
-        $channel  = $channel ? $channel : '#general';
-        $bot_name = $name ? $name : 'Webhook';
-        $icon     = $icon ? $icon : ':alien:';
+    //Options
+    $token    = lifestream_config("slack", "token");
+    $domain   = lifestream_config("slack", "domain");
+    $channel  = $channel ? $channel : '#general';
+    $bot_name = $name ? $name : 'Webhook';
+    $icon     = $icon ? $icon : ':alien:';
 
-        $attachments = array([
-            'fallback' => 'Lorem ipsum',
-            'pretext'  => 'Lorem ipsum',
-            'color'    => '#ff6600',
-            'fields'   => array(
-                [
-                    'title' => 'Title',
-                    'value' => 'Lorem ipsum',
-                    'short' => true
-                ],
-                [
-                    'title' => 'Notes',
-                    'value' => 'Lorem ipsum',
-                    'short' => true
-                ]
-            )
-        ]);
-        $data = array(
-            'channel'     => $channel,
-            'username'    => $bot_name,
-            'text'        => $message,
-            'icon_emoji'  => $icon,
-            // 'attachments' => $attachments
-        );
-        $data_string = json_encode($data);
-        $url = 'https://hooks.slack.com/services/'.$token;
-        $ch = curl_init($url);
-            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-                'Content-Type: application/json',
-                'Content-Length: ' . strlen($data_string)));
-        //Execute CURL
-        $result = curl_exec($ch);
-        
-        $info = curl_getinfo($ch);
+    $attachments = array([
+        'fallback' => 'Lorem ipsum',
+        'pretext'  => 'Lorem ipsum',
+        'color'    => '#ff6600',
+        'fields'   => array(
+            [
+                'title' => 'Title',
+                'value' => 'Lorem ipsum',
+                'short' => true
+            ],
+            [
+                'title' => 'Notes',
+                'value' => 'Lorem ipsum',
+                'short' => true
+            ]
+        )
+    ]);
+    $data = array(
+        'channel'     => $channel,
+        'username'    => $bot_name,
+        'text'        => $message,
+        'icon_emoji'  => $icon,
+        // 'attachments' => $attachments
+    );
+    $data_string = json_encode($data);
+    $url = 'https://hooks.slack.com/services/'.$token;
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+        'Content-Type: application/json',
+        'Content-Length: ' . strlen($data_string)));
+    //Execute CURL
+    $result = curl_exec($ch);
+
+    $info = curl_getinfo($ch);
 
     if ($result === false || $info['http_code'] != 200) {
         $output = "No cURL data returned for $url [". $info['http_code']. "]";
@@ -463,11 +480,11 @@ function send_to_slack($message, $name = "Lifestream", $channel = false, $icon =
         error_log($output);
     }
 
-        return $result;
+    return $result;
 }
 
 // addEntry($type,$id,$title,$source,$date,$url='',$image='',$fulldata_json=False,$update=False)
-function addEntry( // THis is a conversion of the same function in the python imports section
+function addEntry(// THis is a conversion of the same function in the python imports section
     $type,
     $id,
     $title,
@@ -512,60 +529,62 @@ function addEntry( // THis is a conversion of the same function in the python im
 
 // z
 //     def add_location(self, timestamp, source, lat, lon, title, icon=False):
-    function add_location($timestamp, $source, $lat, $lon, $title, $icon=False, $alt=0, $fulldata_json = null, $device = 'unset', $accuracy = 0){
-//         l_sql = u'replace into lifestream_locations (`id`, `source`, `lat`, `long`, `lat_vague`, `long_vague`, `timestamp`, `accuracy`, `title`, `icon`) values (%s, %s, %s, %s, %s, %s, %s, 1, %s, %s);'
-        // ORM::configure('id_column_overrides', array(
-        //     'lifestream_locations' => array('id', 'source', 'device')
-        // ));
+function add_location($timestamp, $source, $lat, $lon, $title, $icon=false, $alt=0, $fulldata_json = null, $device = 'unset', $accuracy = 0)
+{
+    //         l_sql = u'replace into lifestream_locations (`id`, `source`, `lat`, `long`, `lat_vague`, `long_vague`, `timestamp`, `accuracy`, `title`, `icon`) values (%s, %s, %s, %s, %s, %s, %s, 1, %s, %s);'
+    // ORM::configure('id_column_overrides', array(
+    //     'lifestream_locations' => array('id', 'source', 'device')
+    // ));
 
-        $datetime = date(DATE_MYSQL, $timestamp);
+    $datetime = date(DATE_MYSQL, $timestamp);
 
 
-        $last = ORM::for_table('lifestream_locations')->where("source", $source)->where_lt('timestamp', $datetime)->order_by_desc("timestamp")->find_one();
-        if (!$last){
-            // print "Keeping first";
-        } elseif (round($last->get('lat_vague') , 1) == round($lat, 1)
-            && round($last->get('lat_vague') , 1) == round($lon, 1) ){
-            // print "Not Keeping ".$datetime." at ".round($lat, 2).'/'.round($lon, 2).' ';
-            return false;
-        } else {
-            // print "--- Keeping ".$datetime." at ".round($lat, 2).'/'.round($lon, 2).' ';
-        }
-        $record = ORM::for_table('lifestream_locations')->create();
-        // +------------+---------------------+------+-----+---------+-------+
-        // | Field      | Type                | Null | Key | Default | Extra |
-        // +------------+---------------------+------+-----+---------+-------+
-        // | id         | bigint(20) unsigned | NO   | PRI | NULL    |       |
-        // | source     | varchar(255)        | NO   | PRI | NULL    |       |
-        // | lat        | double              | YES  |     | NULL    |       |
-        // | long       | double              | YES  |     | NULL    |       |
-        // | alt        | int(11)             | YES  |     | NULL    |       |
-        // | alt_vague  | int(11)             | YES  |     | NULL    |       |
-        // | lat_vague  | double              | YES  |     | NULL    |       |
-        // | long_vague | double              | YES  |     | NULL    |       |
-        // | timestamp  | datetime            | NO   |     | NULL    |       |
-        // | accuracy   | int(11)             | NO   |     | NULL    |       |
-        // | title      | varchar(255)        | YES  |     | NULL    |       |
-        // | icon       | varchar(255)        | YES  |     | NULL    |       |
-        // +------------+---------------------+------+-----+---------+-------+
+    $last = ORM::for_table('lifestream_locations')->where("source", $source)->where_lt('timestamp', $datetime)->order_by_desc("timestamp")->find_one();
+    if (!$last) {
+        // print "Keeping first";
+    } elseif (round($last->get('lat_vague'), 1) == round($lat, 1)
+        && round($last->get('lat_vague'), 1) == round($lon, 1)) {
+        // print "Not Keeping ".$datetime." at ".round($lat, 2).'/'.round($lon, 2).' ';
+        return false;
+    } else {
+        // print "--- Keeping ".$datetime." at ".round($lat, 2).'/'.round($lon, 2).' ';
+    }
+    $record = ORM::for_table('lifestream_locations')->create();
+    // +------------+---------------------+------+-----+---------+-------+
+    // | Field      | Type                | Null | Key | Default | Extra |
+    // +------------+---------------------+------+-----+---------+-------+
+    // | id         | bigint(20) unsigned | NO   | PRI | NULL    |       |
+    // | source     | varchar(255)        | NO   | PRI | NULL    |       |
+    // | lat        | double              | YES  |     | NULL    |       |
+    // | long       | double              | YES  |     | NULL    |       |
+    // | alt        | int(11)             | YES  |     | NULL    |       |
+    // | alt_vague  | int(11)             | YES  |     | NULL    |       |
+    // | lat_vague  | double              | YES  |     | NULL    |       |
+    // | long_vague | double              | YES  |     | NULL    |       |
+    // | timestamp  | datetime            | NO   |     | NULL    |       |
+    // | accuracy   | int(11)             | NO   |     | NULL    |       |
+    // | title      | varchar(255)        | YES  |     | NULL    |       |
+    // | icon       | varchar(255)        | YES  |     | NULL    |       |
+    // +------------+---------------------+------+-----+---------+-------+
 
-        $record->set('id', $timestamp);
-        $record->set('source', $source);
-        $record->set('device', $device);
-        $record->set('accuracy', $accuracy);
-        $record->set('lat', $lat);
-        $record->set('long', $lon);
-        $record->set('alt', $alt);
-        $record->set('lat_vague', round($lat, 2)); 
-        $record->set('long_vague', round($lon, 2)); 
-        $record->set('alt_vague', $alt ? round($alt, 2) : null); 
-        $record->set('timestamp', date(DATE_MYSQL, $timestamp));     
-        $record->set('fulldata_json', $fulldata_json);
-        $record->set('icon', $icon);
-        $record->save(true); // save with replace
+    $record->set('id', $timestamp);
+    $record->set('source', $source);
+    $record->set('device', $device);
+    $record->set('accuracy', $accuracy);
+    $record->set('lat', $lat);
+    $record->set('long', $lon);
+    $record->set('alt', $alt);
+    $record->set('lat_vague', round($lat, 2));
+    $record->set('long_vague', round($lon, 2));
+    $record->set('alt_vague', $alt ? round($alt, 2) : null);
+    $record->set('timestamp', date(DATE_MYSQL, $timestamp));
+    $record->set('fulldata_json', $fulldata_json);
+    $record->set('icon', $icon);
+    $record->save(true); // save with replace
 }
 
-function raw_location_data($type, $data){
+function raw_location_data($type, $data)
+{
     $record = ORM::for_table('owntracks_unhandled')->create();
     $record->set('type', $type);
     $record->set('fulldata_json', json_encode($data));
