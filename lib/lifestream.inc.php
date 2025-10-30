@@ -585,7 +585,11 @@ function add_location($timestamp, $source, $lat, $lon, $title, $icon=false, $alt
     $record->set('timestamp', date(DATE_MYSQL, $timestamp));
     $record->set('fulldata_json', $fulldata_json);
     $record->set('icon', $icon);
-    $record->save(true); // save with replace
+    try {
+    	$record->save(true); // save with replace
+    } catch (Exception $e){
+	error_log($e->getMessage());
+    }
 }
 
 function raw_location_data($type, $data)
