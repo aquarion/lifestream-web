@@ -234,7 +234,10 @@ if ($max && $return['offset'] >= $max) {
 
 foreach ($items as $row) {
     if ($row['image']) {
-        $row['image'] = "//art.istic.net/lifestreamprox/?url=" . urlencode($row['image']);
+        $url = parse_url($row['image']);
+        if ($url['host'] != "art.istic.net") {
+            $row['image'] = "http://art.istic.net/lifestreamprox/?url=" . urlencode($row['image']);
+        }
     }
     $return['items'][] = $row;
 }
