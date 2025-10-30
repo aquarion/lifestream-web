@@ -1,6 +1,6 @@
 
-var h = 100;
-var w = 100;
+var h = 150;
+var w = 150;
 
 var Formatting = {
 
@@ -297,7 +297,7 @@ var Formatting = {
 		element.addClass("photo");
 		element.css("background-image", "url('"+object.image+"')");
 		element.css("background-position", "top center");
-		element.css("height", 4*h);
+		element.css("height", 2*h);
 		element.ready(Formatting.photoresize);
 
 		element.html('<div class="caption">'+object.title+'</div>')

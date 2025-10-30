@@ -331,8 +331,6 @@ border-image: url(//art.istic.net/images/lt_teal_frame_wide.gif) 17 17 17 17 fil
 
 .mastodon {
   quotes:"\201C""\201D""\2018""\2019";
-  #background: rgba(125,96,103, .4);
-  #background: linear-gradient(30deg, rgba(27,80,224,0.8) 0%, rgba(27,126,224,0.8) 100%);
   background: rgb(85,27,224, .8);
   background: linear-gradient(30deg, rgba(85,27,224,.8) 0%, rgba(145,27,224,.8) 100%);
   color: white;
@@ -401,7 +399,8 @@ border-image: url(//art.istic.net/images/lt_teal_frame_wide.gif) 17 17 17 17 fil
 	width: 100%;
 	background-position: center center;
 	background-repeat: no-repeat;
-	background-size: auto 60%;
+	background-size: clamp(32px, 100px, 100px);
+	
 	position: absolute;
 	top: 0;
 	bottom: 0;
