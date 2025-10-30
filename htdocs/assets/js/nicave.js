@@ -259,6 +259,9 @@ var NicAve = {
             cite.html(this['source']+"@"+this['date_created']);
             item.append(cite);
 
+            
+            //twemoji.parse(item);
+
 
             if (data.direction == "append"){
                 $(container).append( item );
