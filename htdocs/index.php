@@ -73,7 +73,7 @@ if(!$date_point) {
 	<script src="//cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.min.js"></script>
 	<script src="/assets/js/packery.pkgd.min.js"></script>
 	<!-- script type="text/javascript" src="https://www.google.com/jsapi"></script -->
-	<script src="//twemoji.maxcdn.com/2/twemoji.min.js?2.7"></script>
+	<script src="//unpkg.com/twemoji@14.0.2/dist/twemoji.min.js"></script>
 	<script src="/assets/libs/md5-min.js"></script>
 
 	<link href='//fonts.googleapis.com/css?family=PT+Mono|Raleway|Comfortaa' rel='stylesheet' type='text/css'>
