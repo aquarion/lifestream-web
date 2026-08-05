@@ -18,7 +18,7 @@ $ordered = false;
 $message = "";
 
 if (isset($_REQUEST['after'])) {
-    $query->where_gte("date_updated", $_POST['after']);
+    $query->where_gte("date_updated", $_REQUEST['after']);
     $append = "prepend";
 }
 
@@ -38,7 +38,7 @@ if (count($split) && $split[0] == "search") {
 
     $split[1] = urldecode($split[1]);
 
-    $message = $title = sprintf("Search for \"%s\"", $split[1]);
+    $message = $title = sprintf("Search for \"%s\"", htmlspecialchars($split[1], ENT_QUOTES, 'UTF-8'));
     $query->where_like("title", sprintf("%%%s%%", $split[1]));
 
     if (!$ordered) {

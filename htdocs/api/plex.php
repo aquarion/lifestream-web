@@ -79,13 +79,13 @@ switch ($action['event']) {
         $message = Discord::message($discord_announce_webhook)
         ->setUsername('Vis');
 
-        switch ($payload->Metadata->librarySectionType) {
+        switch ($action['Metadata']['librarySectionType']) {
             case 'show':
-                $show = $payload->Metadata->grandparentTitle;
-                $series = $payload->Metadata->parentTitle;
-                $episode = $payload->Metadata->title;
+                $show = $action['Metadata']['grandparentTitle'];
+                $series = $action['Metadata']['parentTitle'];
+                $episode = $action['Metadata']['title'];
                 $message->setTitle("New $show $series Episode: $episode");
-                $message->setDescription($payload->Metadata->summary);
+                $message->setDescription($action['Metadata']['summary']);
                 $message->setThumbnail('https://app.plex.tv/9e432efb-371e-4bb6-b293-40806320701f0');
                 # code...
                 break;
@@ -96,7 +96,7 @@ switch ($action['event']) {
         }
 
         $message->send();
-        // no break
+        break;
     default:
         $data = "**************************************\n"
             . print_r($_POST, true)."\n"

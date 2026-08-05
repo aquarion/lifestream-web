@@ -54,7 +54,7 @@ foreach ($items as $row) {
 }
 
 
-$title = "Heatmap of locations". (isset($_GET['year']) ? ' for '.$_GET['year'] : ' last '.DAYS.' days');
+$title = "Heatmap of locations". (isset($_GET['year']) ? ' for '.htmlspecialchars($_GET['year'], ENT_QUOTES, 'UTF-8') : ' last '.DAYS.' days');
 
 ?><html>
 <!DOCTYPE html>
