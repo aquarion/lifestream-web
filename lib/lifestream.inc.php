@@ -4,7 +4,7 @@ register_shutdown_function("check_for_fatal");
 
 define("DATE_MYSQL", "Y-m-d H:i:s");
 
-require "idiorm/idiorm.php";
+require __DIR__ . "/idiorm.php";
 
 
 define("AN_HOUR", 60*60);
@@ -20,7 +20,7 @@ set_exception_handler("log_exception");
 list($scriptPath) = get_included_files();
 $settings = @parse_ini_file(__DIR__.'/../etc/config.ini');
 if(!$settings) {
-    throw Exception('Config file couldn\'t be read');
+    throw new Exception('Config file couldn\'t be read');
 }
 
 define("IMAGE_ROOT", $settings['image_root']);
@@ -29,17 +29,24 @@ define("LIFESTREAM", $settings['lifestream_dir']);
 
 function log_error($num, $str, $file, $line, $context = null)
 {
+    if (!(error_reporting() & $num)) {
+        // Error suppressed with @ or excluded by error_reporting(); log and continue.
+        return false;
+    }
+
+    if (in_array($num, array(E_WARNING, E_NOTICE, E_DEPRECATED, E_STRICT, E_USER_WARNING, E_USER_NOTICE, E_USER_DEPRECATED))) {
+        error_log("$str in $file on line $line");
+        return true;
+    }
+
     log_exception(new ErrorException($str, 0, $num, $file, $line));
 }
 
 function check_for_fatal()
 {
     $error = error_get_last();
-    if ($error && $error["type"] == E_ERROR) {
+    if ($error && in_array($error["type"], array(E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR))) {
         log_error($error["type"], $error["message"], $error["file"], $error["line"]);
-    } elseif($error) {
-        debug_print_backtrace();
-        die("Error: ".$error);
     }
 }
 
@@ -48,10 +55,9 @@ function check_for_fatal()
 function log_exception($e)
 {
     if (!is_a($e, 'Exception')) {
-        send_to_slack(var_dump($e, true), 'Error', "#general", ":robot:");
+        send_to_slack(var_export($e, true), 'Error', "#general", ":robot:");
 
-        var_dump($e);
-        debug_print_backtrace();
+        error_log(var_export($e, true));
         die();
     }
 
@@ -94,7 +100,6 @@ function send_text_error($errno, $errstr, $errfile, $errline)
 {
     $file = str_replace(realpath(getcwd().DIRECTORY_SEPARATOR.'..'), '', $errfile);
     print "{$errstr} in {$file} at {$errline}";
-    debug_print_backtrace();
     die();
     // throw new ErrorException($errstr, $errno, 0, $errfile, $errline);
 }
@@ -374,7 +379,7 @@ function process_lifestream_item($row)
 function twitterFormat($text)
 {
 
-    $text = nl2br(ereg_replace("[[:alpha:]]+://[^<>[:space:]]+[[:alnum:]/]", "<a href=\"\\0\">\\0</a>", $text));
+    $text = nl2br(preg_replace("#[a-z]+://[^<>\s]+[a-z0-9/]#i", "<a href=\"$0\">$0</a>", $text));
     $text = preg_replace("#@(\w*)?#", "<a href=\"http://www.twitter.com/\\1\">@\\1</a>", $text);
 
     $text = preg_replace("/#(\w*)/", "<a href=\"http://twitter.com/#search?q=%23\\1\">#\\1</a>", $text);
@@ -543,7 +548,7 @@ function add_location($timestamp, $source, $lat, $lon, $title, $icon=false, $alt
     if (!$last) {
         // print "Keeping first";
     } elseif (round($last->get('lat_vague'), 1) == round($lat, 1)
-        && round($last->get('lat_vague'), 1) == round($lon, 1)) {
+        && round($last->get('long_vague'), 1) == round($lon, 1)) {
         // print "Not Keeping ".$datetime." at ".round($lat, 2).'/'.round($lon, 2).' ';
         return false;
     } else {

@@ -16,7 +16,6 @@ ORM::configure('driver_options', array(PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAME
 $query = ORM::for_table('lifestream');
 ORM::configure('logger', function ($log_string, $query_time) {
     error_log($log_string . ' in ' . $query_time);
-    send_to_slack($message, $slack_botname, "#general", ":robot:");
 });
 
 $slack_channel  = lifestream_config('plex', 'slack_channel');
