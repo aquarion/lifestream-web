@@ -178,6 +178,7 @@ paths:
             format: date-time
         - name: to
           in: query
+          description: End of the time range. Defaults to now if omitted.
           schema:
             type: string
             format: date-time
@@ -202,7 +203,7 @@ paths:
       summary: Record a location ping
       description: >
         Mirrors the existing `add_location()` helper. If the given source's most
-        recent point rounds to the same lat/long (2 decimal places) as this one,
+        recent point rounds to the same lat/long (1 decimal place) as this one,
         the request is a no-op and no new row is written.
       operationId: createLocation
       security:
@@ -249,6 +250,7 @@ paths:
             format: date-time
         - name: to
           in: query
+          description: End of the time range. Defaults to now if omitted.
           schema:
             type: string
             format: date-time
@@ -304,12 +306,12 @@ paths:
           application/json:
             schema:
               type: object
-              required: [type, payload]
+              required: [type, fulldata_json]
               properties:
                 type:
                   type: string
                   description: The OwnTracks `_type` field.
-                payload:
+                fulldata_json:
                   type: object
                   description: The full, unmodified payload as received.
       responses:
@@ -415,6 +417,10 @@ components:
       type: object
       required: [source, lat, long, timestamp]
       properties:
+        id:
+          type: integer
+          format: int64
+          description: Epoch timestamp used as the row's primary key.
         source:
           type: string
         device:
@@ -429,15 +435,20 @@ components:
         alt:
           type: number
           nullable: true
+        alt_vague:
+          type: number
+          nullable: true
+          description: Altitude rounded to 2 decimal places.
         lat_vague:
           type: number
           format: double
+          nullable: true
         long_vague:
           type: number
-          format: double
+          nullable: true
         accuracy:
           type: integer
-          nullable: true
+          default: 0
         title:
           type: string
           nullable: true

@@ -40,9 +40,10 @@ without a breaking change, but that migration is not part of this work.
 
 - `GET /v1/entries` — paginated feed. Params: `after` (ISO date-time, filters
   `date_updated >=`, used for polling), `from`/`to` (ISO date-time range on `date_created`),
-  `q` — see search below, `offset`, `limit` (default 100, max 200). Server always excludes
-  `source in (tumblr, lastfm)` and null `title`, matching current behavior. Response includes
-  `items[]` and `total` so the client can compute "X% loaded" itself (current UI behavior).
+  `offset`, `limit` (default 100, max 200). Server always excludes `source in (tumblr, lastfm)`
+  and null `title`, matching current behavior. Response includes `items[]` and `total` so the
+  client can compute "X% loaded" itself (current UI behavior). Title search is a separate
+  operation — see below.
 - `GET /v1/entries/search` — `q` required. Title `LIKE %q%`, ordered ascending by
   `date_created`. Kept as a separate operation (not folded into `/v1/entries?q=`) because it
   changes default ordering and disables date-range filtering, matching the current branch in
@@ -51,7 +52,7 @@ without a breaking change, but that migration is not part of this work.
   `source`. Backs `maps.php` (1-day and 30-day heatmap pages) and general location browsing.
 - `GET /v1/locations/heatmap` — aggregated points: rounds `lat`/`long` to 2 decimal places,
   groups, and counts, mirroring `generate_location_query()` in `fetchNext.php`. Params: `from`,
-  `to`, `source` (repeatable, defaults to "all"; the current code's hardcoded
+  `to`, `source` (single value, defaults to "all"; the current code's hardcoded
   foursquare-vs-not split becomes `source=foursquare` vs omitting it).
 - `GET /v1/locations/latest` — single most recent location point. Backs `lastseen.php`.
 
