@@ -84,3 +84,9 @@ API contract.
 
 `docs/api/openapi.yaml` — OpenAPI 3.0 spec covering the endpoints above, with request/response
 schemas for `Entry`, `Location`, `HeatmapPoint`, and `Error`.
+
+## Future work
+
+Once the API is implemented, it will live in the `Lifestream` Python project, which already has
+a pre-commit setup. Wire `redocly lint docs/api/openapi.yaml` (or the equivalent path there) into
+that pre-commit config instead of adding a separate hook framework to this repo.
