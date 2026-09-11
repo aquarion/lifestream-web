@@ -101,13 +101,15 @@ paths:
               $ref: "#/components/schemas/EntryInput"
       responses:
         "201":
-          description: Entry created or updated.
+          description: No matching `(type, systemid)` entry existed; a new one was created.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Entry"
         "200":
-          description: Entry already existed and `update` was false; no changes made.
+          description: >
+            A matching entry already existed. Updated in place if `update` was true;
+            otherwise left unchanged (a no-op).
           content:
             application/json:
               schema:
@@ -121,7 +123,9 @@ paths:
     get:
       tags: [entries]
       summary: Search feed entries by title
-      description: Title `LIKE %q%` match, ordered ascending by `date_created`.
+      description: >
+        Title `LIKE %q%` match, ordered ascending by `date_created`. Applies the same
+        `source in (tumblr, lastfm)` and null-`title` exclusions as `GET /entries`.
       operationId: searchEntries
       parameters:
         - name: q
@@ -167,8 +171,16 @@ paths:
   /locations:
     get:
       tags: [locations]
-      summary: List raw location points in a time range
+      summary: List location points in a time range
+      description: >
+        Unauthenticated calls get redacted points: `lat`/`long` and `fulldata_json` are
+        null, and only the rounded `lat_vague`/`long_vague` are populated — matching what
+        `maps.php` exposes publicly today. Passing a valid `X-API-Key` includes the precise
+        `lat`/`long` and `fulldata_json`.
       operationId: listLocations
+      security:
+        - ApiKeyAuth: []
+        - {}
       parameters:
         - name: from
           in: query
@@ -202,9 +214,12 @@ paths:
       tags: [locations]
       summary: Record a location ping
       description: >
-        Mirrors the existing `add_location()` helper. If the given source's most
-        recent point rounds to the same lat/long (1 decimal place) as this one,
-        the request is a no-op and no new row is written.
+        Mirrors the existing `add_location()` helper. If, for the given source, the
+        point most recently recorded strictly before this one's timestamp rounds to
+        the same lat/long (1 decimal place) as this one, the request is a no-op and
+        no new row is written. Note this compares against the last point *before*
+        this timestamp, not the source's overall latest point — an out-of-order or
+        replayed ping is deduped against its chronological predecessor.
       operationId: createLocation
       security:
         - ApiKeyAuth: []
@@ -275,7 +290,15 @@ paths:
     get:
       tags: [locations]
       summary: Most recent location point
+      description: >
+        Unauthenticated calls get a redacted point (see `GET /locations`): `lat`/`long`
+        and `fulldata_json` are null, only `lat_vague`/`long_vague` are populated —
+        matching what `lastseen.php` exposes publicly today. Passing a valid
+        `X-API-Key` includes the precise `lat`/`long` and `fulldata_json`.
       operationId: getLatestLocation
+      security:
+        - ApiKeyAuth: []
+        - {}
       responses:
         "200":
           description: The most recent location point, if any exist.
@@ -295,8 +318,10 @@ paths:
       tags: [locations]
       summary: Record an unhandled OwnTracks payload
       description: >
-        Mirrors `raw_location_data()` — stores the raw payload for OwnTracks event
-        types (e.g. `transition`, `waypoint`) that aren't turned into a `Location`.
+        Mirrors `raw_location_data()` — archives the raw payload for every OwnTracks
+        event type, including `location` events (which are also separately recorded
+        via `POST /locations`). Callers should call this for every payload received,
+        not just ones that don't map to a `Location`.
       operationId: createUnhandledLocationPayload
       security:
         - ApiKeyAuth: []
@@ -420,7 +445,9 @@ components:
         id:
           type: integer
           format: int64
-          description: Epoch timestamp used as the row's primary key.
+          description: >
+            Epoch timestamp forming a composite primary key together with `source`;
+            same-second pings from different sources do not collide.
         source:
           type: string
         device:
@@ -429,9 +456,17 @@ components:
         lat:
           type: number
           format: double
+          nullable: true
+          description: >
+            Precise latitude. Null on `GET /locations`/`GET /locations/latest` responses
+            to unauthenticated callers — use `lat_vague` instead.
         long:
           type: number
           format: double
+          nullable: true
+          description: >
+            Precise longitude. Null on `GET /locations`/`GET /locations/latest` responses
+            to unauthenticated callers — use `long_vague` instead.
         alt:
           type: number
           nullable: true
@@ -461,6 +496,9 @@ components:
         fulldata_json:
           type: object
           nullable: true
+          description: >
+            Raw payload from the source. Also null on `GET /locations`/
+            `GET /locations/latest` responses to unauthenticated callers.
 
     LocationInput:
       type: object
@@ -473,9 +511,13 @@ components:
         lat:
           type: number
           format: double
+          minimum: -90
+          maximum: 90
         long:
           type: number
           format: double
+          minimum: -180
+          maximum: 180
         alt:
           type: number
         accuracy:
