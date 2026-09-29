@@ -7,11 +7,11 @@ define("DATE_MYSQL", "Y-m-d H:i:s");
 require __DIR__ . "/idiorm.php";
 
 
-define("AN_HOUR", 60*60);
-define("A_DAY", 60*60*24);
-define("A_WEEK", 60*60*24*7);
-define("A_MONTH", 60*60*24*30);
-define("A_YEAR", 60*60*24*364);
+define("AN_HOUR", 60 * 60);
+define("A_DAY", 60 * 60 * 24);
+define("A_WEEK", 60 * 60 * 24 * 7);
+define("A_MONTH", 60 * 60 * 24 * 30);
+define("A_YEAR", 60 * 60 * 24 * 364);
 
 
 set_error_handler('log_error');
@@ -47,6 +47,12 @@ function check_for_fatal()
     $error = error_get_last();
     if ($error && in_array($error["type"], array(E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR))) {
         log_error($error["type"], $error["message"], $error["file"], $error["line"]);
+<<<<<<< HEAD
+=======
+    } elseif ($error) {
+        debug_print_backtrace();
+        die("Error: " . $error);
+>>>>>>> 5f3694a (Refactor code for consistency and readability; adjust spacing and formatting in lifestream.inc.php)
     }
 }
 
@@ -64,12 +70,12 @@ function log_exception($e)
 
     // send_to_slack($e->getTraceAsString(), 'Exception', "#general", ":robot:");
 
-    if(defined('SEND_JSON_ERRORS') && SEND_JSON_ERRORS == true) {
+    if (defined('SEND_JSON_ERRORS') && SEND_JSON_ERRORS == true) {
         send_json_error($e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine());
-    } elseif(defined('SEND_TEXT_ERRORS') && SEND_TEXT_ERRORS == true) {
+    } elseif (defined('SEND_TEXT_ERRORS') && SEND_TEXT_ERRORS == true) {
         send_text_error($e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine());
     } else {
-        $file = str_replace(realpath(getcwd().DIRECTORY_SEPARATOR.'..'), '', $e->getFile());
+        $file = str_replace(realpath(getcwd() . DIRECTORY_SEPARATOR . '..'), '', $e->getFile());
         header('HTTP/1.1 500 Something Bad');
         header('content-type: text/html; charset: utf-8');
         print "<div style='text-align: center;'>";
@@ -87,7 +93,7 @@ function log_exception($e)
 function send_json_error($errno, $errstr, $errfile, $errline)
 {
 
-    $file = str_replace(realpath(getcwd().DIRECTORY_SEPARATOR.'..'), '', $errfile);
+    $file = str_replace(realpath(getcwd() . DIRECTORY_SEPARATOR . '..'), '', $errfile);
     header('HTTP/1.1 500 Something Bad');
     header('content-type: application/json; charset: utf-8');
     echo json_encode(array('response' => 500, 'message' => $errstr, 'file' => $file, 'line' => $errline));
@@ -98,7 +104,7 @@ function send_json_error($errno, $errstr, $errfile, $errline)
 
 function send_text_error($errno, $errstr, $errfile, $errline)
 {
-    $file = str_replace(realpath(getcwd().DIRECTORY_SEPARATOR.'..'), '', $errfile);
+    $file = str_replace(realpath(getcwd() . DIRECTORY_SEPARATOR . '..'), '', $errfile);
     print "{$errstr} in {$file} at {$errline}";
     die();
     // throw new ErrorException($errstr, $errno, 0, $errfile, $errline);
@@ -110,14 +116,14 @@ function get_start_and_end_date_from_week($w, $y)
 
     $date = mktime(0, 0, 0, 1, 4, $y); // 4th Jan is always week 1
 
-    $days = ($w-1)*7;
+    $days = ($w - 1) * 7;
 
-    $date += $days*(24*60*60);
+    $date += $days * (24 * 60 * 60);
 
-    $d = date("N", $date);# - 1;
+    $d = date("N", $date); # - 1;
 
     $from = $date - (($d) * A_DAY);
-    $to   = $date + ((7-$d) * A_DAY) -1;
+    $to   = $date + ((7 - $d) * A_DAY) - 1;
 
     return array($from, $to);
 }    # function datefromweek
@@ -141,37 +147,37 @@ function niceTime($from, $to = false, $shortform = false)
     // 604800 = week
 
     if ($shortform) {
-        $units = array('sec','min','hr','day','wk','yr');
+        $units = array('sec', 'min', 'hr', 'day', 'wk', 'yr');
     } else {
-        $units = array('second','minute','hour','day','week','year');
+        $units = array('second', 'minute', 'hour', 'day', 'week', 'year');
     }
 
     if ($since < 60) {
         $date = $since;
         $unit = $units[0];
     } elseif ($since < 4000) {
-        $date = round($since/60);
+        $date = round($since / 60);
         $unit = $units[1];
     } elseif ($since < 82000) {
-        $date = round($since/3600);
+        $date = round($since / 3600);
         $unit = $units[2];
     } elseif ($since < 603800) {
-        $date = round($since/86400);
+        $date = round($since / 86400);
         $unit = $units[3];
         #$plus = " on ".date("jS M");
     } elseif ($since < 31440000) {
-        $date = round($since/604800);
+        $date = round($since / 604800);
         $unit = $units[4];
     } else {
-        $date = round($since/(604800 * 52));
+        $date = round($since / (604800 * 52));
         #$date = " over a year";
         $unit = $units[5];
     }
 
     if ($date == 1 || $unit == "") {
-        $date = $date." ".$unit;
+        $date = $date . " " . $unit;
     } else {
-        $date = $date." ".$unit."s";
+        $date = $date . " " . $unit . "s";
     }
 
     if (!$shortform) {
@@ -203,40 +209,40 @@ function process_lifestream_item($row)
 
     switch ($row['type']) {
         case "lastfm":
-            $icon = IMAGE_ROOT.'silk/music.png';
+            $icon = IMAGE_ROOT . 'silk/music.png';
             break;
 
         case "gaming":
-            $icon = IMAGE_ROOT.'silk/joystick.png';
+            $icon = IMAGE_ROOT . 'silk/joystick.png';
             if ($row['source'] == "Champions Online") {
-                $icon = IMAGE_ROOT.'games/ChampionsOnline.png';
+                $icon = IMAGE_ROOT . 'games/ChampionsOnline.png';
                 $row['url'] = "http://www.champions-online.com/character_profiles/user_characters/Jascain";
             } elseif ($row['source'] == "HeroStats") {
-                $icon = IMAGE_ROOT.'games/city_of_heroes/Hero.png';
-                $row['small_icon'] = IMAGE_ROOT.'games/cityofheroes.png';
+                $icon = IMAGE_ROOT . 'games/city_of_heroes/Hero.png';
+                $row['small_icon'] = IMAGE_ROOT . 'games/cityofheroes.png';
                 $row['url'] = "http://cit.cohtitan.com/profile/13610";
             } elseif ($row['source'] == "Raptr" && preg_match('#Champions Online! #', $text)) {
                 $row['content'] .= "#";
             } elseif ($row['source'] == "XLN Live Integration") {
-                $icon = IMAGE_ROOT.'silk/controller.png';
+                $icon = IMAGE_ROOT . 'silk/controller.png';
                 $row['url'] = "http://live.xbox.com/en-GB/profile/profile.aspx?pp=0&GamerTag=Jascain";
             } elseif (preg_match('#\#wow#', $text)) {
                 $row['source'] = "World of Warcraft";
-                $icon = IMAGE_ROOT.'games/world_of_warcraft.png';
+                $icon = IMAGE_ROOT . 'games/world_of_warcraft.png';
             }
             break;
 
         case "steam":
-            $icon = IMAGE_ROOT.'games/steam.png';
-            $row['small_image'] = IMAGE_ROOT.'games/steam_small.png';
+            $icon = IMAGE_ROOT . 'games/steam.png';
+            $row['small_image'] = IMAGE_ROOT . 'games/steam_small.png';
             #$row['url'] = "http://steamcommunity.com/id/aquarion/";
-            $row['title'] = "Achieved: ".$row['title'];
+            $row['title'] = "Achieved: " . $row['title'];
             break;
 
         case "apps":
         case "location":
             if (preg_match("#^I\S* \w* a YouTube video#", $row['content'])) {
-                $icon = IMAGE_ROOT.'silk/film_add.png';
+                $icon = IMAGE_ROOT . 'silk/film_add.png';
                 $row['image'] = $icon;
                 $match = preg_match("#I\S* \w* a YouTube video -- (.*?) (http.*)#", $row['originaltext'], $matches);
 
@@ -249,15 +255,16 @@ function process_lifestream_item($row)
                     $row['content'] = sprintf('%s <a href="%s">%s</a>', $matches[1], $matches[3], $matches[2]);
                 }
 
-                $icon = IMAGE_ROOT.'other/favicon.png';
+                $icon = IMAGE_ROOT . 'other/favicon.png';
                 $row['source'] = "LOVEFiLM";
-            } elseif (strtolower($row['source']) == "foursquare"
-                    or strtolower($row['source']) == "foursquare-mayor"
+            } elseif (
+                strtolower($row['source']) == "foursquare"
+                or strtolower($row['source']) == "foursquare-mayor"
             ) {
                 if ($row['source'] == "Foursquare-Mayor") {
-                    $icon = IMAGE_ROOT.'foursquare%20icons/mayorCrown.png';
+                    $icon = IMAGE_ROOT . 'foursquare%20icons/mayorCrown.png';
                 } else {
-                    $icon = IMAGE_ROOT.'foursquare%20icons/foursquare%20256x256.png';
+                    $icon = IMAGE_ROOT . 'foursquare%20icons/foursquare%20256x256.png';
                 }
 
                 $row['content'] = preg_replace("/#\w*/", "", $row['originaltext']);
@@ -285,15 +292,15 @@ function process_lifestream_item($row)
 
                 #$row['url'] = "http://www.champions-online.com/character_profiles/user_characters/Jascain";
             } elseif ($row['source'] == "Kindle") {
-                $icon = IMAGE_ROOT.'silk/book_open.png';
+                $icon = IMAGE_ROOT . 'silk/book_open.png';
             } elseif ($row['source'] == "Miso") {
-                $icon = IMAGE_ROOT.'silk/television.png';
+                $icon = IMAGE_ROOT . 'silk/television.png';
                 preg_match("#(http://\S*)#", $row['originaltext'], $matches);
                 $row['url'] = $matches[1];
                 $row['content'] = preg_replace("# http://\S*#", "", $row['originaltext']);
             } elseif ($row['source'] == "Untappd") {
-                $icon = IMAGE_ROOT.'other/beer.png';
-                $row['small_icon'] = IMAGE_ROOT.'silk/drink.png';
+                $icon = IMAGE_ROOT . 'other/beer.png';
+                $row['small_icon'] = IMAGE_ROOT . 'silk/drink.png';
 
                 preg_match("#(http://\S*)#", $row['originaltext'], $matches);
                 $row['url'] = $matches[1];
@@ -306,12 +313,12 @@ function process_lifestream_item($row)
 
 
         case "twitter":
-            $icon = IMAGE_ROOT.'twitter/Twitter-64.png';
-            $row['small_icon'] = IMAGE_ROOT.'twitter/rounded-plain-16x16/twitter-02.png';
+            $icon = IMAGE_ROOT . 'twitter/Twitter-64.png';
+            $row['small_icon'] = IMAGE_ROOT . 'twitter/rounded-plain-16x16/twitter-02.png';
 
             switch ($row['source']) {
                 case "Steepster":
-                    $icon = IMAGE_ROOT.'silk/cup.png';
+                    $icon = IMAGE_ROOT . 'silk/cup.png';
                     $row['content'] = preg_replace("/#\w*/", "", $row['originaltext']);
                     preg_match("#(http://\S*)#", $row['content'], $matches);
                     $row['url'] = $matches[1];
@@ -319,7 +326,7 @@ function process_lifestream_item($row)
                     break;
 
                 case "Goodreads":
-                    $icon = IMAGE_ROOT.'silk/book_open.png';
+                    $icon = IMAGE_ROOT . 'silk/book_open.png';
                     preg_match("#(http://\S*)#", $row['originaltext'], $matches);
                     $row['url'] = $matches[1];
                     $row['content'] = preg_replace("# http://\S*#", "", $row['originaltext']);
@@ -332,26 +339,26 @@ function process_lifestream_item($row)
             break;
 
         case "flickr":
-            $icon = IMAGE_ROOT.'silk/picture.png';
+            $icon = IMAGE_ROOT . 'silk/picture.png';
             $row['content'] = sprintf('<a href="%s">%s</a>', $row['url'], $row['content']);
             break;
 
         case "code":
-            $icon = IMAGE_ROOT.'silk/application_osx_terminal.png';
+            $icon = IMAGE_ROOT . 'silk/application_osx_terminal.png';
             $row['content'] = $row['content'];
             break;
 
         case "oyster":
-            $icon = IMAGE_ROOT.'tfl.png';
+            $icon = IMAGE_ROOT . 'tfl.png';
             break;
 
         case "tumblr":
-            $icon = IMAGE_ROOT.'tumblr/tumblr_16.png';
-            $row['small_image'] = IMAGE_ROOT.'tumblr/tumblr_16.png';
+            $icon = IMAGE_ROOT . 'tumblr/tumblr_16.png';
+            $row['small_image'] = IMAGE_ROOT . 'tumblr/tumblr_16.png';
             break;
 
         default:
-            $icon = IMAGE_ROOT.'silk/asterisk_orange.png';
+            $icon = IMAGE_ROOT . 'silk/asterisk_orange.png';
     }
 
     if ($row['image']) {
@@ -398,9 +405,9 @@ function getDatabase()
 {
     global $settings;
 
-    $config_path = LIFESTREAM."/config.ini";
+    $config_path = LIFESTREAM . "/config.ini";
     $config = parse_ini_file($config_path, true);
-    if(!$config) {
+    if (!$config) {
         throw new Exception("Failed to find config at $config_path");
     }
 
@@ -419,9 +426,9 @@ function getDatabase()
 function lifestream_config($area, $item)
 {
 
-    $config_path = LIFESTREAM."/config.ini";
+    $config_path = LIFESTREAM . "/config.ini";
     $config = parse_ini_file($config_path, true);
-    if(!$config) {
+    if (!$config) {
         throw new Exception("Failed to find config at $config_path");
     }
     return $config[$area][$item];
@@ -464,21 +471,22 @@ function send_to_slack($message, $name = "Lifestream", $channel = false, $icon =
         // 'attachments' => $attachments
     );
     $data_string = json_encode($data);
-    $url = 'https://hooks.slack.com/services/'.$token;
+    $url = 'https://hooks.slack.com/services/' . $token;
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
     curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, array(
         'Content-Type: application/json',
-        'Content-Length: ' . strlen($data_string)));
+        'Content-Length: ' . strlen($data_string)
+    ));
     //Execute CURL
     $result = curl_exec($ch);
 
     $info = curl_getinfo($ch);
 
     if ($result === false || $info['http_code'] != 200) {
-        $output = "No cURL data returned for $url [". $info['http_code']. "]";
+        $output = "No cURL data returned for $url [" . $info['http_code'] . "]";
         if (curl_error($ch)) {
             $output .= curl_error($ch);
         }
@@ -489,7 +497,7 @@ function send_to_slack($message, $name = "Lifestream", $channel = false, $icon =
 }
 
 // addEntry($type,$id,$title,$source,$date,$url='',$image='',$fulldata_json=False,$update=False)
-function addEntry(// THis is a conversion of the same function in the python imports section
+function addEntry( // THis is a conversion of the same function in the python imports section
     $type,
     $id,
     $title,
@@ -534,7 +542,7 @@ function addEntry(// THis is a conversion of the same function in the python imp
 
 // z
 //     def add_location(self, timestamp, source, lat, lon, title, icon=False):
-function add_location($timestamp, $source, $lat, $lon, $title, $icon=false, $alt=0, $fulldata_json = null, $device = 'unset', $accuracy = 0)
+function add_location($timestamp, $source, $lat, $lon, $title, $icon = false, $alt = 0, $fulldata_json = null, $device = 'unset', $accuracy = 0)
 {
     //         l_sql = u'replace into lifestream_locations (`id`, `source`, `lat`, `long`, `lat_vague`, `long_vague`, `timestamp`, `accuracy`, `title`, `icon`) values (%s, %s, %s, %s, %s, %s, %s, 1, %s, %s);'
     // ORM::configure('id_column_overrides', array(
@@ -547,8 +555,15 @@ function add_location($timestamp, $source, $lat, $lon, $title, $icon=false, $alt
     $last = ORM::for_table('lifestream_locations')->where("source", $source)->where_lt('timestamp', $datetime)->order_by_desc("timestamp")->find_one();
     if (!$last) {
         // print "Keeping first";
+<<<<<<< HEAD
     } elseif (round($last->get('lat_vague'), 1) == round($lat, 1)
         && round($last->get('long_vague'), 1) == round($lon, 1)) {
+=======
+    } elseif (
+        round($last->get('lat_vague'), 1) == round($lat, 1)
+        && round($last->get('lat_vague'), 1) == round($lon, 1)
+    ) {
+>>>>>>> 5f3694a (Refactor code for consistency and readability; adjust spacing and formatting in lifestream.inc.php)
         // print "Not Keeping ".$datetime." at ".round($lat, 2).'/'.round($lon, 2).' ';
         return false;
     } else {
@@ -586,9 +601,9 @@ function add_location($timestamp, $source, $lat, $lon, $title, $icon=false, $alt
     $record->set('fulldata_json', $fulldata_json);
     $record->set('icon', $icon);
     try {
-    	$record->save(true); // save with replace
-    } catch (Exception $e){
-	error_log($e->getMessage());
+        $record->save(true); // save with replace
+    } catch (Exception $e) {
+        error_log($e->getMessage());
     }
 }
 
