@@ -479,3 +479,14 @@ border-image: url(//art.istic.net/images/lt_teal_frame_wide.gif) 17 17 17 17 fil
     height: 2.5em;
     width: 100%;
 }
+
+.atproto {
+	background: #227bc3;
+	background: linear-gradient(38deg, rgba(34, 123, 195, 1) 0%, rgba(30, 103, 176, 1) 100%);
+	color: white;
+
+	
+	background-image: url('https://art.istic.net/iconography/tile_backgrounds/bluesky_jelleke-vanooteghem-gnxb59lGU1M-unsplash.jpg');
+	background-size: cover;
+	background-repeat: no-repeat;
+}
