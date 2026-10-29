@@ -1,4 +1,4 @@
-FROM node:22-alpine AS node-deps
+FROM node:24-alpine AS node-deps
 WORKDIR /var/www/html
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -13,14 +13,14 @@ ARG VITE_OTEL_EXPORTER_OTLP_ENDPOINT=
 
 RUN VITE_APP_NAME=$APP_NAME VITE_APP_VERSION=$APP_VERSION VITE_APP_ENV=$APP_ENV VITE_APP_PR_NUMBER=$APP_PR_NUMBER VITE_APP_BRANCH=$APP_BRANCH VITE_OTEL_EXPORTER_OTLP_ENDPOINT=$VITE_OTEL_EXPORTER_OTLP_ENDPOINT npm run build
 
-FROM php:8.4-fpm-alpine
+FROM php:8.5-fpm-alpine
 
 LABEL maintainer="Nicholas Avenell <nicholas@istic.net>"
 LABEL description="lifestream-web production image"
 
 COPY --from=mlocati/php-extension-installer:2 /usr/bin/install-php-extensions /usr/bin/install-php-extensions
 
-RUN docker-php-ext-install pdo_mysql opcache bcmath \
+RUN docker-php-ext-install pdo_mysql bcmath \
     && install-php-extensions opentelemetry redis
 
 COPY docker/production/php-opcache.ini /usr/local/etc/php/conf.d/opcache.ini
