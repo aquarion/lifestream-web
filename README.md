@@ -18,7 +18,7 @@ updates directly at `/v1/owntracks`.
 | `/2024`, `/2024/03`, `/2024/wk12`, `/2024/03/05` | A year, month, week or day (days run 03:00–03:00) |
 | `/*/03/05` | The same day in every year |
 | `/search/term` | Title search |
-| `POST /feed` | JSON feed the page loads its tiles from (`public/assets/js/nicave.js`). `/fetchNext.php` is kept as an alias |
+| `POST /feed` | JSON feed the page loads its tiles from (`resources/js/lifestream/feed.js`). `/fetchNext.php` is kept as an alias |
 | `/maps`, `/maps?year=2019` | Location heatmap for the last 30 days, or a calendar year |
 | `/today` | Location heatmap for the last 24 hours |
 | `/lastseen` | JSON of the most recent (rounded) location |
