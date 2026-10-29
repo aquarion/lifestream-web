@@ -47,12 +47,6 @@ function check_for_fatal()
     $error = error_get_last();
     if ($error && in_array($error["type"], array(E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR))) {
         log_error($error["type"], $error["message"], $error["file"], $error["line"]);
-<<<<<<< HEAD
-=======
-    } elseif ($error) {
-        debug_print_backtrace();
-        die("Error: " . $error);
->>>>>>> 5f3694a (Refactor code for consistency and readability; adjust spacing and formatting in lifestream.inc.php)
     }
 }
 
@@ -555,15 +549,8 @@ function add_location($timestamp, $source, $lat, $lon, $title, $icon = false, $a
     $last = ORM::for_table('lifestream_locations')->where("source", $source)->where_lt('timestamp', $datetime)->order_by_desc("timestamp")->find_one();
     if (!$last) {
         // print "Keeping first";
-<<<<<<< HEAD
     } elseif (round($last->get('lat_vague'), 1) == round($lat, 1)
         && round($last->get('long_vague'), 1) == round($lon, 1)) {
-=======
-    } elseif (
-        round($last->get('lat_vague'), 1) == round($lat, 1)
-        && round($last->get('lat_vague'), 1) == round($lon, 1)
-    ) {
->>>>>>> 5f3694a (Refactor code for consistency and readability; adjust spacing and formatting in lifestream.inc.php)
         // print "Not Keeping ".$datetime." at ".round($lat, 2).'/'.round($lon, 2).' ';
         return false;
     } else {
