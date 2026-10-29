@@ -69,7 +69,7 @@ it('pages through results and reports progress', function () {
         ->and($response->json('message'))->toBe('Month from 2019-03-01 to 2019-03-31 (80% Loaded)')
         ->and($response->json())->not->toHaveKey('locations');
 
-    Http::assertSent(fn (Request $request) => $request['offset'] === '100');
+    Http::assertSent(fn (Request $request) => (int) $request['offset'] === 100);
 });
 
 it('shows the most recent 200 items newest first', function () {
@@ -118,7 +118,7 @@ it('filters any-year days by month and day', function () {
 
     postJson('/feed', ['path' => '/*/03/05'])->assertOk();
 
-    Http::assertSent(fn (Request $request) => $request['month'] === '3' && $request['day'] === '5' && ! isset($request['from']));
+    Http::assertSent(fn (Request $request) => (int) $request['month'] === 3 && (int) $request['day'] === 5 && ! isset($request['from']));
 });
 
 it('proxies off-site images', function () {

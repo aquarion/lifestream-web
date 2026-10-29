@@ -14,7 +14,7 @@ class HomeController extends Controller
 {
     public function __invoke(Request $request): View
     {
-        $period = FeedPeriod::fromPath('/'.$request->path());
+        $period = FeedPeriod::fromPath('/'.ltrim($request->path(), '/'));
 
         abort_if($period === null, 404);
 
