@@ -67,14 +67,19 @@ npm run lint:check    # Biome
 ## Deployment
 
 CI (`.github/workflows/ci.yml`) builds `ghcr.io/aquarion/lifestream-web` and
-deploys over SSH to hosts provisioned by
+deploys over SSH to firth, as provisioned by
 [aquarion/autopelago](https://github.com/aquarion/autopelago) (the
-`firth_laravel_app` role, app name `lifestream-web`). The repo needs these
-settings:
+`firth_laravel_app` role, app name `lifestream-web`). Staging deploys to
+`firth.istic.systems` and production to `firth.water.gkhs.net`, matching
+other firth apps such as bloom.
 
-- Secrets `SSH_HOST`, `SSH_HOST_PRODUCTION`, `SSH_KEY`. Autopelago uploads the deploy key.
-- Secret `REBASE_TOKEN`, used by the Dependabot workflows.
-- Optionally, the `DEPLOY_NOOP=true` repo variable, until the hosts exist.
+The secrets come from autopelago's bootstrap run:
+
+- `FIRTH_SSH_KEY`, the app user's deploy key.
+- `REBASE_TOKEN`, used by the Dependabot workflows.
+
+Until they exist, the deploy jobs fail. Set the `DEPLOY_NOOP=true` repo
+variable to skip them in the meantime.
 
 Autopelago provides `LIFESTREAM_API_URL`, Redis, and the browser OTel CORS
 allow-list for the app.

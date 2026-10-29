@@ -157,5 +157,5 @@ jobs:
       packages: write
     with:
       tag: ${{ needs.tag.outputs.next_version }}
-    # Pass caller secrets into the reusable workflow (required for SSH_KEY, GITHUB_TOKEN, etc.)
+    # Pass caller secrets into the reusable workflow (required for FIRTH_SSH_KEY, GITHUB_TOKEN, etc.)
     secrets: inherit # pragma: allowlist secret
