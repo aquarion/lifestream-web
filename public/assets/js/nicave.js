@@ -35,7 +35,7 @@ var NicAve = {
         }
         $.ajax({
           type: "POST",
-          url: '/fetchNext.php',
+          url: '/feed',
           data: data,
           success:  NicAve.success,
           error:  NicAve.error,
@@ -47,7 +47,7 @@ var NicAve = {
         var data = { 'after': mostRecent, 'path': window.location.pathname}
         $.ajax({
           type: "POST",
-          url: '/fetchNext.php',
+          url: '/feed',
           data: data,
           success:  NicAve.success,
           error:  NicAve.error,
@@ -390,7 +390,7 @@ var NicAve = {
       // var layer = new L.StamenTileLayer("toner-lines");
       // map.addLayer(layer);
 
-      var labelsLayer = new L.StamenTileLayer("toner-labels");
+      var labelsLayer = L.tileLayer("https://tiles.stadiamaps.com/tiles/stamen_toner_labels/{z}/{x}/{y}{r}.png", {attribution: "&copy; Stadia Maps &copy; Stamen Design &copy; OpenStreetMap contributors"});
 
 
       latlngs = NicAve.locations_to_latlngs(locations)

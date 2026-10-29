@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'lifestream' => [
+        'url' => env('LIFESTREAM_API_URL'),
+        'timeout' => (int) env('LIFESTREAM_API_TIMEOUT', 5),
+    ],
+
 ];

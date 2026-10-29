@@ -15,8 +15,8 @@ RUN VITE_APP_NAME=$APP_NAME VITE_APP_VERSION=$APP_VERSION VITE_APP_ENV=$APP_ENV 
 
 FROM php:8.4-fpm-alpine
 
-LABEL maintainer="<TODO: your name/team>"
-LABEL description="<TODO: app name> production image"
+LABEL maintainer="Nicholas Avenell <nicholas@istic.net>"
+LABEL description="lifestream-web production image"
 
 COPY --from=mlocati/php-extension-installer:2 /usr/bin/install-php-extensions /usr/bin/install-php-extensions
 

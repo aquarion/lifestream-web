@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Services\LifestreamApi;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -11,7 +12,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(LifestreamApi::class, fn () => new LifestreamApi(
+            (string) config('services.lifestream.url'),
+            (int) config('services.lifestream.timeout'),
+        ));
     }
 
     /**

@@ -12,7 +12,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // The feed is a read-only POST from nicave.js, which sends no CSRF token.
+        $middleware->validateCsrfTokens(except: ['feed', 'fetchNext.php']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

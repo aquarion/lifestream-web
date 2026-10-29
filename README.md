@@ -1,112 +1,81 @@
-# Laravel Starter Kit
+# lifestream-web
 
-A Laravel 13 starter kit with version exposure, OpenTelemetry (backend + browser),
-a dev-only Cloudflare tunnel, Pest test config, and a full CI/CD + Dependabot
-pipeline pre-wired. Infra/ops scope only — no frontend framework opinion.
+The lifestream at [nicholasavenell.com](https://nicholasavenell.com): a page of
+everything various services have seen me do, with location heatmaps.
+
+This is a Laravel 13 app built from
+[aquarion/laravel-starter-kit](https://github.com/aquarion/laravel-starter-kit).
+It has no database of its own. All data comes from the Lifestream data API
+in [aquarion/lifestream](https://github.com/aquarion/lifestream) (`/v1`, see
+`docs/api/openapi.yaml` there), which also receives OwnTracks location
+updates directly at `/v1/owntracks`.
+
+## Pages
+
+| URL | What |
+|---|---|
+| `/` | The last 200 items, newest first |
+| `/2024`, `/2024/03`, `/2024/wk12`, `/2024/03/05` | A year, month, week or day (days run 03:00–03:00) |
+| `/*/03/05` | The same day in every year |
+| `/search/term` | Title search |
+| `POST /feed` | JSON feed the page loads its tiles from (`public/assets/js/nicave.js`). `/fetchNext.php` is kept as an alias |
+| `/maps`, `/maps?year=2019` | Location heatmap for the last 30 days, or a whole year |
+| `/today` | Location heatmap for the last day |
+| `/lastseen` | JSON of the most recent (rounded) location |
+
+Locations are only ever shown at the API's rounded (`*_vague`, ~1km)
+precision: the app calls the API unauthenticated, and the API redacts
+precise coordinates for unauthenticated callers.
+
+The frontend (jQuery, Packery, Leaflet, `public/assets/`) is ported as-is from
+the pre-Laravel site; modernising it is tracked separately.
 
 ## Getting started
 
-> Plain `composer create-project istic/laravel-starter-kit` won't resolve yet —
-> this repo is on GitHub (https://github.com/istic/laravel-starter-kit) but isn't
-> registered on Packagist. Until it is, point Composer at the GitHub repo directly
-> via a `vcs` repository (as below), or use a local `path` repository if working
-> from a clone.
-
 ```bash
-composer create-project istic/laravel-starter-kit my-app \
-  --repository='{"type":"vcs","url":"https://github.com/istic/laravel-starter-kit"}' \
-  --stability=dev
-cd my-app
-npm install
-npm run build
+composer setup
 ```
 
-`composer create-project` already installs PHP dependencies and, via
-`composer.json`'s `post-root-package-install`/`post-create-project-cmd` hooks,
-copies `.env.example` to `.env`, generates `APP_KEY`, and runs migrations —
-you only need to install and build frontend assets afterward.
+Then set `LIFESTREAM_API_URL` in `.env` to a running Lifestream API, including
+the version prefix (e.g. `https://lifestream.example.com/v1`), and run
+`composer dev`.
 
-If you're working directly in a clone of this repo instead (no `create-project`),
-run `composer setup` instead, which chains `composer install` + `.env` copy +
-key generation + migrate + `npm install` + `npm run build` in one step.
+`composer.lock` targets PHP 8.4, which CI and the production image use.
+`ext-opentelemetry` is a platform requirement; see the starter kit's README
+for installing it, or run Composer with
+`--ignore-platform-req=ext-opentelemetry` if you don't need backend
+OpenTelemetry locally.
 
-### `ext-opentelemetry` and `composer install`
+### Configuration
 
-`composer.json` declares `ext-opentelemetry` as a platform requirement (it backs
-the backend OTEL auto-instrumentation). Composer enforces platform requirements
-by default, including during `composer create-project` — so any machine running
-plain `composer` commands against this project needs the PECL `opentelemetry`
-extension physically installed (`pecl install opentelemetry`, or your
-distro/package-manager equivalent).
-
-This also applies inside Sail: the stock Sail 8.4 runtime image
-(`vendor/laravel/sail/runtimes/8.4/Dockerfile`) does **not** install
-`ext-opentelemetry` by default. So `./vendor/bin/sail composer install` will hit
-the same platform check failure out of the box, unless you opt in:
-
-- Uncomment `PHP_EXTENSIONS=opentelemetry` in `.env` and rebuild
-  (`./vendor/bin/sail build --no-cache`) — `compose.yaml` already threads it
-  into the Sail image's `PHP_EXTENSIONS` build arg, **or**
-- Run Composer commands with `--ignore-platform-req=ext-opentelemetry` (both on
-  bare metal and inside Sail) if you don't need backend OTEL working locally.
-
-The production image (`docker/production/Dockerfile`) is unaffected — it
-installs the extension via `install-php-extensions opentelemetry` before running
-`composer install`.
-
-## Placeholders to fill in after `create-project`
-
-- **App name** — set `APP_NAME` in `.env` (feeds `OTEL_RESOURCE_ATTRIBUTES` and the frontend's `VITE_APP_NAME` via `docker/production/Dockerfile`'s `ARG APP_NAME`).
-- **`docker/production/Dockerfile` image labels** — replace the hardcoded `LABEL maintainer="<TODO: your name/team>"` and `LABEL description="<TODO: app name> production image"` placeholders directly in the Dockerfile; these are separate from `APP_NAME` and aren't populated by any env var.
-- **`docker/cloudflared/config.yml`** — replace `<TUNNEL_UUID>` and `<app>` with a real tunnel, after running (one-time, per project):
-
-  ```sh
-  docker compose run --rm --no-deps --entrypoint cloudflared cloudflared tunnel login
-  docker compose run --rm --no-deps --entrypoint cloudflared cloudflared tunnel create <app>
-  docker compose run --rm --no-deps --entrypoint cloudflared cloudflared tunnel route dns <app> <app>.istic.dev
-  ```
-
-  Then fill in the real tunnel UUID, credentials filename, and hostnames in `docker/cloudflared/config.yml`.
-- **GHCR image name** — `.github/workflows/ci.yml`'s `env.IMAGE_NAME` defaults to `${{ github.repository }}`, which is usually correct as-is; also set `env.APP_NAME` there (currently `"<TODO: app name, e.g. myapp>"`, used for the SSH deploy user/path).
-- **SSH deploy secrets** — in repo settings, add `SSH_HOST`, `SSH_HOST_PRODUCTION`, and `SSH_KEY`, for hosts already provisioned via `aquarion/autopelago`.
-- **`DEPLOY_NOOP` repo variable** (Settings → Secrets and variables → Actions → Variables) — a new project starts *without* this set, which is intentional: `deploy-staging`/`deploy-production` will fail loudly against the SSH deploy secrets above until you configure them, rather than silently skipping forever. It's an opt-in escape hatch, not a default — only set it to `true` if you deliberately want CI to pass without deploying (e.g. while a host is still being provisioned), and remove it once the real host is ready. Being a repo variable, not a file in this repo, it never carries over from `create-project`/cloning — `istic/laravel-starter-kit` itself has it set to `true` in its own repo settings only, since the template repo has no deploy target at all.
-- **`REBASE_TOKEN`** — a PAT with `contents:write`/`pull-requests:write` on this repo, used by `auto-rebase-dependabot.yml` and `dependabot-make-release.yml` (`gh pr merge`) because the default `GITHUB_TOKEN` can't merge PRs.
-- **Frontend OTEL CORS allow-list** (one-time, per project) — the OTLP ingest endpoint (`otlp.svc.istic.systems`) only accepts POSTs from allow-listed origins. Set `browser_otel: true` on the app's entry in `aquarion/autopelago`'s `host_vars/<host>/laravel_apps.yml` (staging inherits the flag from the parent app entry unless overridden). Without this, every browser error report fails silently — `reportError` never throws, by design, so there's no console signal that CORS is rejecting requests.
-- Confirm `aquarion/autopelago` has provisioned the target staging/production host before the CI deploy jobs will succeed.
-
-## Local development
-
-This repo ships a [`pre-commit`](https://pre-commit.com) config (Pint, PHPStan, Biome, Composer lock validation, actionlint, detect-secrets, graphify). Install the hooks once per clone:
-
-```bash
-pre-commit install
-```
-
-Requires `composer install` to have already been run (see "Getting started" above) —
-`compose.yaml`'s `laravel.test` service builds from
-`./vendor/laravel/sail/runtimes/8.4`, a path inside `vendor/`, which only exists
-after Composer has installed dependencies.
-
-```bash
-./vendor/bin/sail up -d
-```
-
-Brings up the app, MySQL, Redis, Mailpit, and the `cloudflared` dev tunnel (once configured per above). The tunnel's Cloudflare account cert and per-tunnel credentials live in `docker/cloudflared/data/` (gitignored, bind-mounted into the container).
-
-Sessions are Redis-backed by default (`SESSION_DRIVER=redis` in `.env.example`, `REDIS_HOST=redis` matching Sail's `redis` service hostname). In production, `SESSION_DRIVER` and `REDIS_HOST` are injected together by the deploy target (e.g. `aquarion/autopelago`'s `firth_laravel_app` role, conditionally on that app having Redis configured) — if neither is injected, Laravel falls back to its own `database` session default. Injecting one without the other (`SESSION_DRIVER=redis` with no reachable `REDIS_HOST`) is not a safe state — it fails at connection time rather than falling back — so treat them as a pair.
+| Variable | |
+|---|---|
+| `LIFESTREAM_API_URL` | Base URL of the Lifestream API, including `/v1` |
+| `LIFESTREAM_API_TIMEOUT` | Seconds, default 5 |
+| `APP_TIMEZONE` | Default `Europe/London`. Date ranges are sent to the API as wall-clock times in this zone |
+| `SESSION_DRIVER`, `CACHE_STORE`, `REDIS_HOST` | Sessions and cache use Redis |
+| `RUN_MIGRATIONS` | Set to `false`: there are no migrations to run |
 
 ## Testing
 
 ```bash
-composer lint:check   # Pint, --test mode
-composer stan         # PHPStan (Larastan), level 4
-composer test         # Pest, parallel
-npm run lint:check    # Biome lint
-npm run format:check  # Biome format check
+composer lint:check   # Pint
+composer stan         # PHPStan (Larastan)
+composer test         # Pest; the Lifestream API is faked with Http::fake()
+npm run lint:check    # Biome
 ```
 
-## Version endpoint
+## Deployment
 
-`GET /version` returns `{"version", "pr_number", "branch"}` as JSON, sourced
-from the `APP_VERSION`, `APP_PR_NUMBER`, and `APP_BRANCH` env vars via
-`config('version')`.
+CI (`.github/workflows/ci.yml`) builds `ghcr.io/aquarion/lifestream-web` and
+deploys over SSH to hosts provisioned by
+[aquarion/autopelago](https://github.com/aquarion/autopelago) (the
+`firth_laravel_app` role, app name `lifestream-web`). The repo needs these
+settings:
+
+- Secrets `SSH_HOST`, `SSH_HOST_PRODUCTION`, `SSH_KEY`. Autopelago uploads the deploy key.
+- Secret `REBASE_TOKEN`, used by the Dependabot workflows.
+- Optionally, the `DEPLOY_NOOP=true` repo variable, until the hosts exist.
+
+Autopelago provides `LIFESTREAM_API_URL`, Redis, and the browser OTel CORS
+allow-list for the app.

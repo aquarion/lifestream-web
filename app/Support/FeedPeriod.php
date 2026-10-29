@@ -1,0 +1,347 @@
+<?php
+
+namespace App\Support;
+
+use DateInterval;
+use DateTimeImmutable;
+
+/**
+ * A page of the lifestream, parsed from its URL path.
+ *
+ * Ports the path handling that the legacy app duplicated between index.php
+ * (page chrome and the year strip) and fetchNext.php (feed query, messages
+ * and navigation). Timestamps are Unix epochs in the app timezone.
+ *
+ * Back/forward links step by whole calendar periods. The legacy code added
+ * fixed 364/30/7-day offsets instead, which skipped or repeated periods
+ * (e.g. "back" from March went to January).
+ */
+final class FeedPeriod
+{
+    public const A_DAY = 86400;
+
+    public const A_WEEK = 604800;
+
+    public const A_YEAR = 31449600; // 364 days, as in the legacy app
+
+    public const RECENT_MAX = 200;
+
+    /**
+     * @param  'recent'|'search'|'year'|'week'|'month'|'day'|'anyday'  $kind
+     * @param  int|null  $from  Start of the period ("today" in the feed JSON); null for search
+     * @param  int|null  $entriesFrom  Inclusive lower bound for entries' date_created
+     * @param  int|null  $entriesTo  Exclusive upper bound for entries' date_created
+     * @param  int|null  $locationsFrom  Lower bound for the heatmap; null means no heatmap
+     * @param  int|null  $locationsTo  Upper bound for the heatmap; null means "until now"
+     * @param  array{back: string|false, forward: string|false, up: string|false}  $nav
+     */
+    private function __construct(
+        public readonly string $kind,
+        public readonly ?int $from,
+        public readonly ?int $entriesFrom,
+        public readonly ?int $entriesTo,
+        public readonly ?int $locationsFrom,
+        public readonly ?int $locationsTo,
+        public readonly string $message,
+        public readonly string $title,
+        public readonly array $nav,
+        public readonly int $today,
+        public readonly int $datePoint,
+        public readonly string $format,
+        public readonly string $displayFormat,
+        public readonly ?string $search = null,
+        public readonly ?int $month = null,
+        public readonly ?int $day = null,
+    ) {}
+
+    /**
+     * Parse a request path such as "/2024/03/05". Returns null for paths the
+     * site doesn't recognise (the homepage 404s on these).
+     */
+    public static function fromPath(string $path, ?int $now = null): ?self
+    {
+        $now ??= time();
+
+        $split = explode('/', $path);
+        if ($split[0] === '') {
+            array_shift($split);
+        }
+        if ($split !== [] && end($split) === '') {
+            array_pop($split);
+        }
+
+        $count = count($split);
+
+        if ($count > 0 && $split[0] === 'search') {
+            return self::search(urldecode($split[1] ?? ''), $now);
+        }
+        if ($count === 0) {
+            return self::recent($now);
+        }
+        if ($count === 1 && ctype_digit($split[0])) {
+            return self::year((int) $split[0]);
+        }
+        if ($count === 2 && ctype_digit($split[0]) && preg_match('/^wk(\d+)$/', $split[1], $m)) {
+            return self::week((int) $m[1], (int) $split[0], $m[1]);
+        }
+        if ($count === 2 && ctype_digit($split[0]) && ctype_digit($split[1])) {
+            return self::month((int) $split[1], (int) $split[0]);
+        }
+        if ($count === 3 && $split[0] === '*' && ctype_digit($split[1]) && ctype_digit($split[2])) {
+            return self::anyDay((int) $split[1], (int) $split[2]);
+        }
+        if ($count === 3 && ctype_digit($split[0]) && ctype_digit($split[1]) && ctype_digit($split[2])) {
+            return self::day((int) $split[1], (int) $split[2], (int) $split[0]);
+        }
+
+        return null;
+    }
+
+    /**
+     * The year strip shown in the page header: the same point in time in
+     * every year from 2001 to now.
+     *
+     * @return list<array{href: string, title: string, label: int}>
+     */
+    public function yearLinks(?int $now = null): array
+    {
+        $now ??= time();
+        $thisYear = (int) date('Y', $this->today);
+        $links = [];
+
+        for ($year = 2001; $year <= (int) date('Y', $now); $year++) {
+            $date = new DateTimeImmutable(date('Y-m-d', $this->datePoint));
+            $yearsAgo = $thisYear - $year;
+            $interval = new DateInterval(sprintf('P%dY', abs($yearsAgo)));
+            $date = $yearsAgo > 0 ? $date->sub($interval) : $date->add($interval);
+
+            $links[] = [
+                'href' => $date->format($this->format),
+                'title' => $date->format($this->displayFormat),
+                'label' => $year,
+            ];
+        }
+
+        return $links;
+    }
+
+    private static function search(string $term, int $now): self
+    {
+        $message = sprintf('Search for "%s"', $term);
+
+        return new self(
+            kind: 'search',
+            from: null,
+            entriesFrom: null,
+            entriesTo: null,
+            locationsFrom: null,
+            locationsTo: null,
+            message: $message,
+            title: $message,
+            nav: ['back' => false, 'forward' => false, 'up' => '/'],
+            today: $now,
+            datePoint: $now,
+            format: '/Y/m/d',
+            displayFormat: '\Y\e\a\r \o\f Y',
+            search: $term,
+        );
+    }
+
+    private static function recent(int $now): self
+    {
+        return new self(
+            kind: 'recent',
+            from: $now,
+            entriesFrom: null,
+            entriesTo: null,
+            locationsFrom: self::at0300($now - self::A_WEEK * 2),
+            locationsTo: null,
+            message: sprintf('This is the last %d things various services have seen me do.', self::RECENT_MAX),
+            title: ' Last 200 Items',
+            nav: [
+                'back' => date('/Y/m/d', $now),
+                'forward' => false,
+                'up' => date('/Y/\w\kW', $now),
+            ],
+            today: $now,
+            datePoint: $now,
+            format: '/Y/m/d',
+            displayFormat: 'l jS F Y',
+        );
+    }
+
+    private static function year(int $year): self
+    {
+        $from = (int) mktime(0, 0, 0, 1, 1, $year);
+        $next = (int) mktime(0, 0, 0, 1, 1, $year + 1);
+        $message = sprintf('Year from %s to %s', date('Y-m-d', $from), date('Y-m-d', $next - 1));
+
+        return new self(
+            kind: 'year',
+            from: $from,
+            entriesFrom: $from,
+            entriesTo: $next,
+            locationsFrom: $from,
+            locationsTo: $next,
+            message: $message,
+            title: $message,
+            nav: [
+                'back' => '/'.($year - 1),
+                'forward' => '/'.($year + 1),
+                'up' => false,
+            ],
+            today: $from,
+            datePoint: $from,
+            format: '/Y/m/d',
+            displayFormat: '\Y\e\a\r \o\f Y',
+        );
+    }
+
+    private static function week(int $week, int $year, string $label): self
+    {
+        [$from, $to] = self::weekBounds($week, $year);
+        $message = sprintf('Week %s from %s to %s', $label, date('Y-m-d', $from), date('Y-m-d', $to));
+        $weeksInYear = static fn (int $y): int => (int) date('W', (int) mktime(0, 0, 0, 12, 28, $y));
+        $back = $week > 1 ? [$year, $week - 1] : [$year - 1, $weeksInYear($year - 1)];
+        $forward = $week < $weeksInYear($year) ? [$year, $week + 1] : [$year + 1, 1];
+
+        return new self(
+            kind: 'week',
+            from: $from,
+            entriesFrom: $from,
+            entriesTo: $to + 1,
+            locationsFrom: $from,
+            locationsTo: $to + 1,
+            message: $message,
+            title: $message,
+            nav: [
+                'back' => sprintf('/%d/wk%02d', ...$back),
+                'forward' => sprintf('/%d/wk%02d', ...$forward),
+                'up' => date('/Y/m', $from),
+            ],
+            today: $from,
+            datePoint: intdiv($to - $from, 2) + $from,
+            format: '/Y/\w\kW',
+            displayFormat: '\W\k W Y',
+        );
+    }
+
+    private static function month(int $month, int $year): self
+    {
+        $from = (int) mktime(0, 0, 0, $month, 1, $year);
+        $next = (int) mktime(0, 0, 0, $month + 1, 1, $year);
+        $message = sprintf('Month from %s to %s', date('Y-m-d', $from), date('Y-m-d', $next - 1));
+
+        return new self(
+            kind: 'month',
+            from: $from,
+            entriesFrom: $from,
+            entriesTo: $next,
+            locationsFrom: $from,
+            locationsTo: $next,
+            message: $message,
+            title: $message,
+            nav: [
+                'back' => date('/Y/m', (int) mktime(0, 0, 0, $month - 1, 1, $year)),
+                'forward' => date('/Y/m', $next),
+                'up' => date('/Y', $from),
+            ],
+            today: $from,
+            datePoint: $from,
+            format: '/Y/m',
+            displayFormat: 'F Y',
+        );
+    }
+
+    /**
+     * A single day. Days run 03:00 to 03:00, so late nights count as the
+     * day before.
+     */
+    private static function day(int $month, int $day, int $year): self
+    {
+        $from = (int) mktime(0, 0, 0, $month, $day, $year);
+        $start = (int) mktime(3, 0, 0, $month, $day, $year);
+        $end = (int) mktime(3, 0, 0, $month, $day + 1, $year);
+        $message = sprintf('Day from %s to %s', date('Y-m-d H:i', $start), date('Y-m-d H:i', $end));
+
+        return new self(
+            kind: 'day',
+            from: $from,
+            entriesFrom: $start,
+            entriesTo: $end,
+            locationsFrom: $start,
+            locationsTo: $end,
+            message: $message,
+            title: $message,
+            nav: [
+                'back' => date('/Y/m/d', (int) mktime(0, 0, 0, $month, $day - 1, $year)),
+                'forward' => date('/Y/m/d', (int) mktime(0, 0, 0, $month, $day + 1, $year)),
+                'up' => date('/Y/\w\kW', $from),
+            ],
+            today: $from,
+            datePoint: $from,
+            format: '/Y/m/d',
+            displayFormat: 'l jS F Y',
+        );
+    }
+
+    /**
+     * The same calendar day in every year ("/ * /MM/DD"). The legacy app
+     * anchored this to year 2000 (mktime() of intval('*')); that only
+     * affects the "Day from" message and the year strip.
+     */
+    private static function anyDay(int $month, int $day): self
+    {
+        $from = (int) mktime(0, 0, 0, $month, $day, 2000);
+        $message = sprintf('Day from %s to %s', date('Y-m-d 03:00', $from), date('Y-m-d 03:00', (int) mktime(0, 0, 0, $month, $day + 1, 2000)));
+
+        return new self(
+            kind: 'anyday',
+            from: $from,
+            entriesFrom: null,
+            entriesTo: null,
+            locationsFrom: null,
+            locationsTo: null,
+            message: $message,
+            title: $message,
+            nav: [
+                'back' => date('/\*/m/d', (int) mktime(0, 0, 0, $month, $day - 1, 2000)),
+                'forward' => date('/\*/m/d', (int) mktime(0, 0, 0, $month, $day + 1, 2000)),
+                'up' => '/',
+            ],
+            today: $from,
+            datePoint: $from,
+            format: '/\*/m/d',
+            displayFormat: 'l jS F \A\n\y \y\e\a\r',
+            month: $month,
+            day: $day,
+        );
+    }
+
+    /**
+     * Port of the legacy get_start_and_end_date_from_week(): weeks run from
+     * the Sunday before to the following Saturday, counted from 4th January.
+     *
+     * @return array{int, int}
+     */
+    public static function weekBounds(int $week, int $year): array
+    {
+        $day = 4 + ($week - 1) * 7;
+        $dayOfWeek = (int) date('N', (int) mktime(0, 0, 0, 1, $day, $year));
+
+        $from = (int) mktime(0, 0, 0, 1, $day - $dayOfWeek, $year);
+        $to = (int) mktime(0, 0, 0, 1, $day + 7 - $dayOfWeek, $year) - 1;
+
+        return [$from, $to];
+    }
+
+    private static function at0300(int $timestamp): int
+    {
+        return (int) mktime(3, 0, 0, (int) date('n', $timestamp), (int) date('j', $timestamp), (int) date('Y', $timestamp));
+    }
+
+    public function isFuture(?int $now = null): bool
+    {
+        return $this->from !== null && $this->from > ($now ?? time());
+    }
+}

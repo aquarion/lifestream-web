@@ -1,9 +1,12 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "istic/laravel-starter-kit",
+    "name": "aquarion/lifestream-web",
     "type": "project",
-    "description": "A Laravel 13 starter kit with version exposure, OpenTelemetry, a dev-only Cloudflare tunnel, and CI/CD pre-wired.",
-    "keywords": ["laravel", "framework"],
+    "description": "nicholasavenell.com lifestream site, a client of the Lifestream API.",
+    "keywords": [
+        "laravel",
+        "framework"
+    ],
     "license": "MIT",
     "require": {
         "php": "^8.3",
@@ -44,7 +47,6 @@
             "composer install",
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
             "@php artisan key:generate",
-            "@php artisan migrate --force",
             "npm install --ignore-scripts",
             "npm run build"
         ],
@@ -52,24 +54,24 @@
             "Composer\\Config::disableProcessTimeout",
             "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=1 --timeout=0\" \"php artisan pail --timeout=0\" \"npm run dev\" --names=server,queue,logs,vite --kill-others"
         ],
-        "lint": ["pint --parallel"],
-        "lint:check": ["pint --parallel --test"],
-        "stan": ["phpstan analyse --memory-limit=512M"],
-        "test": ["pest --parallel"],
+        "lint": [
+            "pint --parallel"
+        ],
+        "lint:check": [
+            "pint --parallel --test"
+        ],
+        "stan": [
+            "phpstan analyse --memory-limit=512M"
+        ],
+        "test": [
+            "pest --parallel"
+        ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"
         ],
         "post-update-cmd": [
             "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
-        ],
-        "post-root-package-install": [
-            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
-        ],
-        "post-create-project-cmd": [
-            "@php artisan key:generate --ansi",
-            "@php -r \"file_exists('database/database.sqlite') || touch('database/database.sqlite');\"",
-            "@php artisan migrate --graceful --ansi"
         ],
         "pre-package-uninstall": [
             "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"
