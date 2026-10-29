@@ -126,7 +126,7 @@ it('proxies off-site images', function () {
     Http::fake([
         'lifestream.test/v1/entries*' => Http::response(apiPage([
             apiEntry(['image' => 'https://example.com/a.png']),
-            apiEntry(['image' => 'https://art.istic.net/icon.png']),
+            apiEntry(['image' => 'http://art.istic.net/icon.png']),
             apiEntry(['image' => '0']),
         ], 3)),
         'lifestream.test/v1/locations/heatmap*' => Http::response([]),
@@ -134,7 +134,7 @@ it('proxies off-site images', function () {
 
     $response = postJson('/feed', ['path' => '/2019'])->assertOk();
 
-    expect($response->json('items.0.image'))->toBe('http://art.istic.net/lifestreamprox/?url=https%3A%2F%2Fexample.com%2Fa.png')
+    expect($response->json('items.0.image'))->toBe('https://art.istic.net/lifestreamprox/?url=https%3A%2F%2Fexample.com%2Fa.png')
         ->and($response->json('items.1.image'))->toBe('https://art.istic.net/icon.png')
         ->and($response->json('items.2.image'))->toBe('');
 });

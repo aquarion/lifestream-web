@@ -30,7 +30,7 @@ class FeedController extends Controller
      * Off-site images are loaded through this caching proxy on art.istic.net,
      * so the page doesn't hotlink (and break on) third-party image URLs.
      */
-    private const IMAGE_PROXY = 'http://art.istic.net/lifestreamprox/?url=';
+    private const IMAGE_PROXY = 'https://art.istic.net/lifestreamprox/?url=';
 
     public function __construct(private readonly LifestreamApi $api) {}
 
@@ -61,7 +61,7 @@ class FeedController extends Controller
             $return['items'][] = [
                 'source' => 'xkcd',
                 'title' => '<h2>That is the future. We will do things differently there.</h2>
-				<a href="http://xkcd.com/338/"><img src=\'http://imgs.xkcd.com/comics/future.png\'></a>',
+				<a href="https://xkcd.com/338/"><img src=\'https://imgs.xkcd.com/comics/future.png\'></a>',
                 'image' => '',
                 'date_created' => time(),
             ];
@@ -118,7 +118,9 @@ class FeedController extends Controller
 
     /**
      * Shape an API entry for the frontend: empty strings rather than nulls for
-     * url/image, and off-site images proxied.
+     * url/image, off-site images proxied, and art.istic.net images on HTTPS
+     * (older rows store http:// URLs, which the page would load as mixed
+     * content).
      *
      * @param  array<string, mixed>  $entry
      * @return array<string, mixed>
@@ -129,8 +131,10 @@ class FeedController extends Controller
         // Some importers stored "0" for "no image".
         $entry['image'] = in_array($entry['image'] ?? '', ['', '0'], true) ? '' : $entry['image'];
 
-        if ($entry['image'] !== '' && parse_url((string) $entry['image'], PHP_URL_HOST) !== 'art.istic.net') {
-            $entry['image'] = self::IMAGE_PROXY.urlencode((string) $entry['image']);
+        if ($entry['image'] !== '') {
+            $entry['image'] = parse_url((string) $entry['image'], PHP_URL_HOST) === 'art.istic.net'
+                ? (string) preg_replace('#^http://#', 'https://', (string) $entry['image'])
+                : self::IMAGE_PROXY.urlencode((string) $entry['image']);
         }
 
         return $entry;

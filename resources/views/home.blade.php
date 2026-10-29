@@ -4,7 +4,7 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 
-	<link href='//fonts.googleapis.com/css?family=PT+Mono|Raleway|Comfortaa' rel='stylesheet' type='text/css'>
+	<link href='https://fonts.googleapis.com/css?family=PT+Mono|Raleway|Comfortaa' rel='stylesheet' type='text/css'>
 	@include('partials.icons')
 	<link rel="stylesheet" href="https://dailyphoto.aquarionics.com/background.css.php?from={{ date('Y-m-d', $period->today) }}"/>
 	@vite(['resources/js/app.js', 'resources/js/lifestream/home.js'])
