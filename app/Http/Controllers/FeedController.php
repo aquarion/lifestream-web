@@ -9,31 +9,43 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * The JSON feed behind the homepage tiles (legacy fetchNext.php).
+ * The JSON feed behind the homepage tiles (POST /feed).
  *
- * The response shape is kept identical to the legacy endpoint so the
- * existing public/assets/js/nicave.js keeps working unchanged.
+ * The response shape is compatible with the pre-Laravel fetchNext.php, so
+ * public/assets/js/nicave.js works unchanged. API failures are rendered as a
+ * JSON 503 by the handler in bootstrap/app.php.
  */
 class FeedController extends Controller
 {
     private const BLOCK_SIZE = 100;
 
+    /** Seconds nicave.js waits before polling for new items. */
+    private const POLL_SECONDS = 30;
+
+    /** Seconds nicave.js waits before fetching the next page of a period. */
+    private const NEXT_PAGE_SECONDS = 2;
+
+    /**
+     * Off-site images are loaded through this caching proxy on art.istic.net,
+     * so the page doesn't hotlink (and break on) third-party image URLs.
+     */
     private const IMAGE_PROXY = 'http://art.istic.net/lifestreamprox/?url=';
 
     public function __construct(private readonly LifestreamApi $api) {}
 
     public function __invoke(Request $request): JsonResponse
     {
+        // Unrecognised paths fall back to the homepage feed, as the legacy
+        // endpoint did; the page itself has already 404ed on them.
         $period = FeedPeriod::fromPath((string) $request->input('path', '/'))
-            ?? FeedPeriod::fromPath('/');
-        assert($period !== null);
+            ?? FeedPeriod::recent();
 
         $after = $request->filled('after') ? (string) $request->input('after') : null;
         $offset = max(0, (int) $request->input('offset', 0));
 
         $return = [
             'status' => 200,
-            'next' => 30,
+            'next' => self::POLL_SECONDS,
             'today' => $period->from ?? false,
             'offset' => 0,
             'max' => 0,
@@ -56,20 +68,14 @@ class FeedController extends Controller
             return response()->json($return);
         }
 
-        try {
-            $page = $this->fetchEntries($period, $offset, $after);
-        } catch (LifestreamApiException $e) {
-            report($e);
-
-            return response()->json(['response' => 500, 'message' => 'Could not load the lifestream right now.'], 500);
-        }
+        $page = $this->fetchEntries($period, $offset, $after);
 
         $return['max'] = $page['total'];
         $max = $period->kind === 'recent' ? FeedPeriod::RECENT_MAX : null;
 
         if ($return['max'] > $offset + self::BLOCK_SIZE) {
             $return['offset'] = $offset + self::BLOCK_SIZE;
-            $return['next'] = 2;
+            $return['next'] = self::NEXT_PAGE_SECONDS;
 
             $percent = ($return['offset'] / ($max ?? $return['max'])) * 100;
             $return['message'] .= sprintf(' (%d%% Loaded)', $percent);
@@ -127,7 +133,7 @@ class FeedController extends Controller
         }
 
         if (isset($entry['fulldata_json'])) {
-            $entry['fulldata_json'] = json_encode($entry['fulldata_json']);
+            $entry['fulldata_json'] = json_encode($entry['fulldata_json'], JSON_THROW_ON_ERROR);
         }
 
         return $entry;
@@ -152,7 +158,8 @@ class FeedController extends Controller
 
         $locations = [];
         foreach ($points as $point) {
-            if (! $point['lat'] || ! $point['long']) {
+            // 0,0 is a bogus fix, not a real location.
+            if ($point['lat'] == 0 && $point['long'] == 0) {
                 continue;
             }
 

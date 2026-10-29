@@ -27,13 +27,6 @@ php artisan view:cache || {
     exit 1
 }
 
-# Set RUN_MIGRATIONS=false on additional replicas to avoid concurrent migration attempts.
-if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
-    echo "[entrypoint] Running migrations..."
-    php artisan migrate --force || {
-        echo "[entrypoint] ERROR: php artisan migrate --force failed" >&2
-        exit 1
-    }
-fi
+# No migrations: this app has no database tables of its own.
 
 exec "$@"

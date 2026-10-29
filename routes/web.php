@@ -11,7 +11,7 @@ Route::get('/version', function () {
 })->name('version');
 
 Route::post('/feed', FeedController::class)->name('feed');
-Route::any('/fetchNext.php', FeedController::class);
+Route::post('/fetchNext.php', FeedController::class);
 
 Route::get('/maps', [MapController::class, 'heatmap'])->name('maps');
 Route::get('/today', [MapController::class, 'today'])->name('today');

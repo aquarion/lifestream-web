@@ -97,7 +97,9 @@ class LifestreamApi
     {
         $response = $this->send('/locations/latest', []);
 
-        if ($response->status() === 404) {
+        // The API answers 404 with a JSON `detail` when no location has been
+        // recorded. Any other 404 (e.g. a wrong base URL) is an error.
+        if ($response->status() === 404 && $response->json('detail') !== null) {
             return null;
         }
 

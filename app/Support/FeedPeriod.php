@@ -2,27 +2,23 @@
 
 namespace App\Support;
 
-use DateInterval;
 use DateTimeImmutable;
 
 /**
  * A page of the lifestream, parsed from its URL path.
  *
- * Ports the path handling that the legacy app duplicated between index.php
- * (page chrome and the year strip) and fetchNext.php (feed query, messages
- * and navigation). Timestamps are Unix epochs in the app timezone.
+ * Ports the legacy site's path handling (page chrome, year strip, feed
+ * query, messages and navigation) into one place. Timestamps are Unix
+ * epochs; calendar boundaries (midnight, 03:00) are computed in the app
+ * timezone.
  *
- * Back/forward links step by whole calendar periods. The legacy code added
- * fixed 364/30/7-day offsets instead, which skipped or repeated periods
- * (e.g. "back" from March went to January).
+ * Back/forward links step by whole calendar periods.
  */
 final class FeedPeriod
 {
     public const A_DAY = 86400;
 
     public const A_WEEK = 604800;
-
-    public const A_YEAR = 31449600; // 364 days, as in the legacy app
 
     public const RECENT_MAX = 200;
 
@@ -73,25 +69,44 @@ final class FeedPeriod
         $count = count($split);
 
         if ($count > 0 && $split[0] === 'search') {
-            return self::search(urldecode($split[1] ?? ''), $now);
+            $term = urldecode($split[1] ?? '');
+
+            return trim($term) === '' ? null : self::search($term, $now);
         }
         if ($count === 0) {
             return self::recent($now);
         }
-        if ($count === 1 && ctype_digit($split[0])) {
-            return self::year((int) $split[0]);
+        if (! ctype_digit($split[0]) && $split[0] !== '*') {
+            return null;
         }
-        if ($count === 2 && ctype_digit($split[0]) && preg_match('/^wk(\d+)$/', $split[1], $m)) {
-            return self::week((int) $m[1], (int) $split[0], $m[1]);
+        if ($split[0] !== '*' && ! self::validYear((int) $split[0])) {
+            return null;
         }
-        if ($count === 2 && ctype_digit($split[0]) && ctype_digit($split[1])) {
-            return self::month((int) $split[1], (int) $split[0]);
+
+        $year = (int) $split[0];
+
+        if ($count === 1 && $split[0] !== '*') {
+            return self::year($year);
         }
-        if ($count === 3 && $split[0] === '*' && ctype_digit($split[1]) && ctype_digit($split[2])) {
-            return self::anyDay((int) $split[1], (int) $split[2]);
+        if ($count === 2 && $split[0] !== '*' && preg_match('/^wk(\d+)$/', $split[1], $m)) {
+            $week = (int) $m[1];
+
+            return $week >= 1 && $week <= self::weeksInYear($year) ? self::week($week, $year, $m[1]) : null;
         }
-        if ($count === 3 && ctype_digit($split[0]) && ctype_digit($split[1]) && ctype_digit($split[2])) {
-            return self::day((int) $split[1], (int) $split[2], (int) $split[0]);
+        if ($count === 2 && $split[0] !== '*' && ctype_digit($split[1])) {
+            $month = (int) $split[1];
+
+            return $month >= 1 && $month <= 12 ? self::month($month, $year) : null;
+        }
+        if ($count === 3 && ctype_digit($split[1]) && ctype_digit($split[2])) {
+            [$month, $day] = [(int) $split[1], (int) $split[2]];
+
+            if ($split[0] === '*') {
+                // Any year: allow 29th February.
+                return checkdate($month, $day, 2000) ? self::anyDay($month, $day) : null;
+            }
+
+            return checkdate($month, $day, $year) ? self::day($month, $day, $year) : null;
         }
 
         return null;
@@ -107,13 +122,15 @@ final class FeedPeriod
     {
         $now ??= time();
         $thisYear = (int) date('Y', $this->today);
+        [$pointYear, $month, $day] = array_map('intval', explode('-', date('Y-n-j', $this->datePoint)));
         $links = [];
 
         for ($year = 2001; $year <= (int) date('Y', $now); $year++) {
-            $date = new DateTimeImmutable(date('Y-m-d', $this->datePoint));
-            $yearsAgo = $thisYear - $year;
-            $interval = new DateInterval(sprintf('P%dY', abs($yearsAgo)));
-            $date = $yearsAgo > 0 ? $date->sub($interval) : $date->add($interval);
+            // Shift by whole years, clamping 29th February to the 28th in
+            // non-leap years rather than spilling into March.
+            $targetYear = $pointYear + ($year - $thisYear);
+            $daysInMonth = (int) date('t', (int) mktime(0, 0, 0, $month, 1, $targetYear));
+            $date = (new DateTimeImmutable)->setDate($targetYear, $month, min($day, $daysInMonth))->setTime(0, 0);
 
             $links[] = [
                 'href' => $date->format($this->format),
@@ -127,7 +144,9 @@ final class FeedPeriod
 
     private static function search(string $term, int $now): self
     {
-        $message = sprintf('Search for "%s"', $term);
+        // The frontend renders the message as HTML (nicave.js), so escape the
+        // user-supplied term; the raw term is kept for the API query.
+        $message = sprintf('Search for "%s"', htmlspecialchars($term, ENT_QUOTES, 'UTF-8'));
 
         return new self(
             kind: 'search',
@@ -147,8 +166,13 @@ final class FeedPeriod
         );
     }
 
-    private static function recent(int $now): self
+    /**
+     * The homepage: the most recent items.
+     */
+    public static function recent(?int $now = null): self
     {
+        $now ??= time();
+
         return new self(
             kind: 'recent',
             from: $now,
@@ -201,9 +225,8 @@ final class FeedPeriod
     {
         [$from, $to] = self::weekBounds($week, $year);
         $message = sprintf('Week %s from %s to %s', $label, date('Y-m-d', $from), date('Y-m-d', $to));
-        $weeksInYear = static fn (int $y): int => (int) date('W', (int) mktime(0, 0, 0, 12, 28, $y));
-        $back = $week > 1 ? [$year, $week - 1] : [$year - 1, $weeksInYear($year - 1)];
-        $forward = $week < $weeksInYear($year) ? [$year, $week + 1] : [$year + 1, 1];
+        $back = $week > 1 ? [$year, $week - 1] : [$year - 1, self::weeksInYear($year - 1)];
+        $forward = $week < self::weeksInYear($year) ? [$year, $week + 1] : [$year + 1, 1];
 
         return new self(
             kind: 'week',
@@ -333,6 +356,16 @@ final class FeedPeriod
         $to = (int) mktime(0, 0, 0, 1, $day + 7 - $dayOfWeek, $year) - 1;
 
         return [$from, $to];
+    }
+
+    private static function weeksInYear(int $year): int
+    {
+        return (int) date('W', (int) mktime(0, 0, 0, 12, 28, $year));
+    }
+
+    private static function validYear(int $year): bool
+    {
+        return $year >= 1970 && $year <= 2100;
     }
 
     private static function at0300(int $timestamp): int

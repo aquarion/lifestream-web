@@ -19,12 +19,12 @@ updates directly at `/v1/owntracks`.
 | `/*/03/05` | The same day in every year |
 | `/search/term` | Title search |
 | `POST /feed` | JSON feed the page loads its tiles from (`public/assets/js/nicave.js`). `/fetchNext.php` is kept as an alias |
-| `/maps`, `/maps?year=2019` | Location heatmap for the last 30 days, or a whole year |
-| `/today` | Location heatmap for the last day |
+| `/maps`, `/maps?year=2019` | Location heatmap for the last 30 days, or a calendar year |
+| `/today` | Location heatmap for the last 24 hours |
 | `/lastseen` | JSON of the most recent (rounded) location |
 
-Locations are only ever shown at the API's rounded (`*_vague`, ~1km)
-precision: the app calls the API unauthenticated, and the API redacts
+Locations are only ever shown at the API's rounded precision (`*_vague`:
+2 decimal places, roughly 1 km): the app calls the API unauthenticated, and the API redacts
 precise coordinates for unauthenticated callers.
 
 The frontend (jQuery, Packery, Leaflet, `public/assets/`) is ported as-is from
@@ -54,7 +54,6 @@ OpenTelemetry locally.
 | `LIFESTREAM_API_TIMEOUT` | Seconds, default 5 |
 | `APP_TIMEZONE` | Default `Europe/London`. Date ranges are sent to the API as wall-clock times in this zone |
 | `SESSION_DRIVER`, `CACHE_STORE`, `REDIS_HOST` | Sessions and cache use Redis |
-| `RUN_MIGRATIONS` | Set to `false`: there are no migrations to run |
 
 ## Testing
 

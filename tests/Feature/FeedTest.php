@@ -1,12 +1,13 @@
 <?php
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 
 use function Pest\Laravel\post;
 use function Pest\Laravel\postJson;
 
-function entry(array $overrides = []): array
+function apiEntry(array $overrides = []): array
 {
     return array_merge([
         'type' => 'twitter',
@@ -21,14 +22,14 @@ function entry(array $overrides = []): array
     ], $overrides);
 }
 
-function page(array $items, int $total, int $offset = 0): array
+function apiPage(array $items, int $total, int $offset = 0): array
 {
     return ['items' => $items, 'total' => $total, 'offset' => $offset, 'limit' => 100];
 }
 
 it('returns a day of entries in the legacy feed shape', function () {
     Http::fake([
-        'lifestream.test/v1/entries*' => Http::response(page([entry()], 1)),
+        'lifestream.test/v1/entries*' => Http::response(apiPage([apiEntry()], 1)),
         'lifestream.test/v1/locations/heatmap*' => Http::response([
             ['lat' => 51.5, 'long' => -0.12, 'count' => 4, 'title' => 'Home', 'icon' => null],
             ['lat' => 0, 'long' => 0, 'count' => 1, 'title' => null, 'icon' => null],
@@ -60,7 +61,7 @@ it('returns a day of entries in the legacy feed shape', function () {
 });
 
 it('pages through results and reports progress', function () {
-    Http::fake(['lifestream.test/v1/entries*' => Http::response(page([entry()], 250))]);
+    Http::fake(['lifestream.test/v1/entries*' => Http::response(apiPage([apiEntry()], 250))]);
 
     $response = postJson('/feed', ['path' => '/2019/03', 'offset' => 100])->assertOk();
 
@@ -74,7 +75,7 @@ it('pages through results and reports progress', function () {
 
 it('shows the most recent 200 items newest first', function () {
     Http::fake([
-        'lifestream.test/v1/entries*' => Http::response(page([entry()], 5000)),
+        'lifestream.test/v1/entries*' => Http::response(apiPage([apiEntry()], 5000)),
         'lifestream.test/v1/locations/heatmap*' => Http::response([]),
     ]);
 
@@ -91,7 +92,7 @@ it('shows the most recent 200 items newest first', function () {
 
 it('polls for updates with after', function () {
     Http::fake([
-        'lifestream.test/v1/entries*' => Http::response(page([], 0)),
+        'lifestream.test/v1/entries*' => Http::response(apiPage([], 0)),
         'lifestream.test/v1/locations/heatmap*' => Http::response([]),
     ]);
 
@@ -103,7 +104,7 @@ it('polls for updates with after', function () {
 });
 
 it('searches titles', function () {
-    Http::fake(['lifestream.test/v1/entries/search*' => Http::response(page([entry()], 1))]);
+    Http::fake(['lifestream.test/v1/entries/search*' => Http::response(apiPage([apiEntry()], 1))]);
 
     postJson('/feed', ['path' => '/search/hello%20world'])
         ->assertOk()
@@ -114,7 +115,7 @@ it('searches titles', function () {
 });
 
 it('filters any-year days by month and day', function () {
-    Http::fake(['lifestream.test/v1/entries*' => Http::response(page([], 0))]);
+    Http::fake(['lifestream.test/v1/entries*' => Http::response(apiPage([], 0))]);
 
     postJson('/feed', ['path' => '/*/03/05'])->assertOk();
 
@@ -123,9 +124,9 @@ it('filters any-year days by month and day', function () {
 
 it('proxies off-site images', function () {
     Http::fake([
-        'lifestream.test/v1/entries*' => Http::response(page([
-            entry(['image' => 'https://example.com/a.png']),
-            entry(['image' => 'https://art.istic.net/icon.png']),
+        'lifestream.test/v1/entries*' => Http::response(apiPage([
+            apiEntry(['image' => 'https://example.com/a.png']),
+            apiEntry(['image' => 'https://art.istic.net/icon.png']),
         ], 2)),
         'lifestream.test/v1/locations/heatmap*' => Http::response([]),
     ]);
@@ -137,21 +138,60 @@ it('proxies off-site images', function () {
 });
 
 it('shows xkcd for the future without calling the API', function () {
-    postJson('/feed', ['path' => '/2999'])
+    postJson('/feed', ['path' => '/2099'])
         ->assertOk()
         ->assertJsonPath('items.0.source', 'xkcd');
 
     Http::assertNothingSent();
 });
 
-it('returns a JSON error when the API is down', function () {
+it('returns a JSON 503 when the API errors', function () {
     Http::fake(['lifestream.test/*' => Http::response(['detail' => 'boom'], 500)]);
 
-    postJson('/feed', ['path' => '/2019'])->assertStatus(500)->assertJsonPath('response', 500);
+    postJson('/feed', ['path' => '/2019'])
+        ->assertStatus(503)
+        ->assertExactJson(['status' => 503, 'message' => 'The lifestream is unavailable right now.']);
 });
 
-it('still serves the legacy fetchNext.php URL without a CSRF token', function () {
-    Http::fake(['lifestream.test/v1/entries/search*' => Http::response(page([], 0))]);
+it('returns a JSON 503 when the API is unreachable', function () {
+    Http::fake(fn () => throw new ConnectionException('Connection refused'));
+
+    postJson('/feed', ['path' => '/2019'])->assertStatus(503)->assertJsonPath('status', 503);
+});
+
+it('still returns entries when only the heatmap fails', function () {
+    Http::fake([
+        'lifestream.test/v1/entries*' => Http::response(apiPage([apiEntry()], 1)),
+        'lifestream.test/v1/locations/heatmap*' => Http::response(['detail' => 'boom'], 500),
+    ]);
+
+    postJson('/feed', ['path' => '/2019/03/05'])
+        ->assertOk()
+        ->assertJsonCount(1, 'items')
+        ->assertJsonPath('locations', []);
+});
+
+it('escapes search terms in the message', function () {
+    Http::fake(['lifestream.test/v1/entries/search*' => Http::response(apiPage([], 0))]);
+
+    postJson('/feed', ['path' => '/search/%3Cimg%20src%3Dx%20onerror%3Dalert(1)%3E'])
+        ->assertOk()
+        ->assertJsonPath('message', 'Search for "&lt;img src=x onerror=alert(1)&gt;"');
+
+    Http::assertSent(fn (Request $request) => $request['q'] === '<img src=x onerror=alert(1)>');
+});
+
+it('falls back to the homepage feed for unknown paths', function () {
+    Http::fake([
+        'lifestream.test/v1/entries*' => Http::response(apiPage([], 0)),
+        'lifestream.test/v1/locations/heatmap*' => Http::response([]),
+    ]);
+
+    postJson('/feed', ['path' => '/nonsense'])->assertOk()->assertJsonPath('title', ' Last 200 Items');
+});
+
+it('still serves the legacy fetchNext.php URL', function () {
+    Http::fake(['lifestream.test/v1/entries/search*' => Http::response(apiPage([], 0))]);
 
     post('/fetchNext.php', ['path' => '/search/x'])->assertOk()->assertJsonPath('status', 200);
 });

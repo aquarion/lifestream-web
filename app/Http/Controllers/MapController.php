@@ -22,23 +22,20 @@ class MapController extends Controller
     public function __construct(private readonly LifestreamApi $api) {}
 
     /**
-     * The last 30 days, or a whole year with ?year=YYYY.
+     * The last 30 days, or a calendar year with ?year=YYYY.
      */
     public function heatmap(Request $request): View
     {
-        $year = $request->integer('year') ?: null;
-
-        return $this->map($year, 30, 5000);
+        return $this->map($this->year($request), 30, 5000);
     }
 
     /**
-     * The last day.
+     * The last 24 hours, or a calendar year with ?year=YYYY (as on /maps,
+     * but drawn with smaller heatmap points).
      */
     public function today(Request $request): View
     {
-        $year = $request->integer('year') ?: null;
-
-        return $this->map($year, 1, 50);
+        return $this->map($this->year($request), 1, 50);
     }
 
     public function lastSeen(): JsonResponse
@@ -64,14 +61,14 @@ class MapController extends Controller
     private function map(?int $year, int $days, int $heatmapSize): View
     {
         if ($year !== null) {
-            $to = (int) mktime(23, 59, 59, 12, 31, $year);
-            $from = $to - FeedPeriod::A_YEAR;
+            $from = $this->toDate((int) mktime(0, 0, 0, 1, 1, $year));
+            $to = $this->toDate((int) mktime(0, 0, 0, 1, 1, $year + 1));
         } else {
-            $to = time();
-            $from = $to - FeedPeriod::A_DAY * $days;
+            $to = $this->toDate(time());
+            $from = $this->toDate(time() - FeedPeriod::A_DAY * $days);
         }
 
-        $points = $this->api->locations($this->midnight($from), $this->midnight($to));
+        $points = $this->api->locations($from, $to);
 
         $title = 'Heatmap of locations'.($year !== null ? ' for '.$year : ' last '.$days.' days');
 
@@ -120,11 +117,21 @@ class MapController extends Controller
         return $locations;
     }
 
-    private function midnight(int $timestamp): DateTimeImmutable
+    /**
+     * ?year=, limited to the years the lifestream covers; anything else
+     * means "no year" (the rolling window).
+     */
+    private function year(Request $request): ?int
+    {
+        $year = $request->integer('year');
+
+        return $year >= 2001 && $year <= (int) date('Y') ? $year : null;
+    }
+
+    private function toDate(int $timestamp): DateTimeImmutable
     {
         return (new DateTimeImmutable('@'.$timestamp))
-            ->setTimezone(new DateTimeZone(date_default_timezone_get()))
-            ->setTime(0, 0);
+            ->setTimezone(new DateTimeZone(date_default_timezone_get()));
     }
 
     private function formatTimestamp(mixed $timestamp): string

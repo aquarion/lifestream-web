@@ -3,7 +3,12 @@
 use App\Support\FeedPeriod;
 
 beforeEach(function () {
+    $this->previousTimezone = date_default_timezone_get();
     date_default_timezone_set('Europe/London');
+});
+
+afterEach(function () {
+    date_default_timezone_set($this->previousTimezone);
 });
 
 it('parses a year', function () {
@@ -80,6 +85,14 @@ it('parses the same day in any year as month and day', function () {
         ->and($period->nav)->toBe(['back' => '/*/03/04', 'forward' => '/*/03/06', 'up' => '/']);
 });
 
+it('escapes the search term in the message but not the query', function () {
+    $period = FeedPeriod::fromPath('/search/%3Cimg%20src%3Dx%20onerror%3Dalert(1)%3E');
+
+    expect($period->search)->toBe('<img src=x onerror=alert(1)>')
+        ->and($period->message)->toBe('Search for "&lt;img src=x onerror=alert(1)&gt;"')
+        ->and($period->title)->toBe($period->message);
+});
+
 it('parses a search', function () {
     $period = FeedPeriod::fromPath('/search/hello%20world');
 
@@ -103,7 +116,23 @@ it('defaults to the most recent items', function () {
 
 it('rejects paths it does not recognise', function (string $path) {
     expect(FeedPeriod::fromPath($path))->toBeNull();
-})->with(['/2019/03/05/extra', '/nonsense', '/2019/march', '/wp-admin/']);
+})->with([
+    '/2019/03/05/extra', '/nonsense', '/2019/march', '/wp-admin/',
+    '/2019/13', '/2019/00', '/2019/13/45', '/2019/02/29', '/2019/wk00', '/2019/wk53', '/2019/wk99',
+    '/1900', '/99999', '/*/02/30', '/*', '/*/03', '/search', '/search/', '/search/%20',
+]);
+
+it('accepts leap days and 53-week years', function (string $path) {
+    expect(FeedPeriod::fromPath($path))->not->toBeNull();
+})->with(['/2020/02/29', '/*/02/29', '/2020/wk53']);
+
+it('clamps leap days in the year strip', function () {
+    $links = FeedPeriod::fromPath('/2020/02/29')->yearLinks(mktime(0, 0, 0, 1, 1, 2021));
+
+    expect($links[18]['href'])->toBe('/2019/02/28')
+        ->and($links[19]['href'])->toBe('/2020/02/29')
+        ->and($links[20]['href'])->toBe('/2021/02/28');
+});
 
 it('links to the same day in every year', function () {
     $links = FeedPeriod::fromPath('/2019/03/05')->yearLinks(mktime(0, 0, 0, 1, 1, 2021));
