@@ -1,0 +1,18 @@
+name: "[Auto] Merge Dependabot Updates"
+
+on:
+  pull_request:
+    # dependabot.yml targets version updates at dependabot-updates, but
+    # GitHub's automatic security updates ignore target-branch and always
+    # open against the default branch - so main needs the same handling.
+    branches: [dependabot-updates, main]
+
+permissions: {}
+
+jobs:
+  automerge:
+    if: github.actor == 'dependabot[bot]'
+    uses: istic/shared-workflows/.github/workflows/auto-merge-dependabot.yml@main
+    permissions:
+      pull-requests: write
+      contents: write
