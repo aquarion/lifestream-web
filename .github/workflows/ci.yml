@@ -59,9 +59,6 @@ jobs:
       - name: Generate application key
         run: php artisan key:generate
 
-      - name: Run migrations
-        run: php artisan migrate --force
-
       - name: Build assets
         run: npm run build
 
@@ -192,11 +189,6 @@ jobs:
               exit 1
             }
             rm -rf public/build/assets && mkdir -p public/build && docker compose cp app:/var/www/html/public/build/assets public/build/
-            docker compose exec -T app php artisan migrate --force || {
-              echo "ERROR: Migration failed"
-              docker compose exec -T app php artisan migrate:status || true
-              exit 1
-            }
 
   deploy-production:
     needs: build-and-push
@@ -254,8 +246,3 @@ jobs:
               exit 1
             }
             rm -rf public/build/assets && mkdir -p public/build && docker compose cp app:/var/www/html/public/build/assets public/build/
-            docker compose exec -T app php artisan migrate --force || {
-              echo "ERROR: Migration failed"
-              docker compose exec -T app php artisan migrate:status || true
-              exit 1
-            }
