@@ -4,17 +4,10 @@ import L from './leaflet.js';
 import 'leaflet.heat';
 
 const MAPBOX_TOKEN = 'pk.eyJ1IjoiYXF1YXJpb24iLCJhIjoiQzRoeUpwZyJ9.gIhABGtR7UMR-LZUJGRW0A';
-const STADIA_ATTRIBUTION = '&copy; Stadia Maps &copy; Stamen Design &copy; OpenStreetMap contributors';
 
 export function mapboxLayer(style) {
     return L.tileLayer(`https://api.mapbox.com/styles/v1/${style}/tiles/256/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`, {
         attribution: '&copy; Mapbox &copy; OpenStreetMap contributors',
-    });
-}
-
-export function stadiaLayer(name, extension = '{r}.png') {
-    return L.tileLayer(`https://tiles.stadiamaps.com/tiles/stamen_${name}/{z}/{x}/{y}${extension}`, {
-        attribution: STADIA_ATTRIBUTION,
     });
 }
 
@@ -65,7 +58,6 @@ export function drawLocations(container, locations, { baseLayer, baseLayers, rad
     if (baseLayers) {
         L.control
             .layers(baseLayers, {
-                Roads: stadiaLayer('toner_labels'),
                 Heatmap: heatmap,
                 Foursquare: markerLayer,
             })

@@ -1,6 +1,6 @@
 // Entry point for the /maps and /today heatmap pages.
 
-import { drawLocations, mapboxLayer, stadiaLayer } from './map.js';
+import { drawLocations, mapboxLayer } from './map.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const container = document.getElementById('mapcanvas');
@@ -15,10 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
         baseLayer: metropolis,
         baseLayers: {
             Metropolis: metropolis,
+            Light: mapboxLayer('mapbox/light-v9'),
             'Satellite-9': mapboxLayer('mapbox/satellite-v9'),
-            Watercolor: stadiaLayer('watercolor', '.jpg'),
-            Toner: stadiaLayer('toner'),
-            'Toner Lite': stadiaLayer('toner_lite'),
         },
         radius: Number(container.dataset.radius),
         weight: 0.6,
