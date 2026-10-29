@@ -58,8 +58,11 @@ it('treats the API\'s own 404 as no latest location', function () {
     expect(api()->latestLocation())->toBeNull();
 });
 
-it('treats any other 404 as an error', function () {
-    Http::fake(['*' => Http::response('<html>Not Found</html>', 404)]);
+it('treats any other 404 as an error', function (mixed $body) {
+    Http::fake(['*' => Http::response($body, 404)]);
 
     expect(fn () => api()->latestLocation())->toThrow(LifestreamApiException::class);
-});
+})->with([
+    'non-JSON page' => '<html>Not Found</html>',
+    'FastAPI unknown route (wrong base URL)' => [['detail' => 'Not Found']],
+]);

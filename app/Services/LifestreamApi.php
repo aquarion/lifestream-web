@@ -97,9 +97,11 @@ class LifestreamApi
     {
         $response = $this->send('/locations/latest', []);
 
-        // The API answers 404 with a JSON `detail` when no location has been
-        // recorded. Any other 404 (e.g. a wrong base URL) is an error.
-        if ($response->status() === 404 && $response->json('detail') !== null) {
+        // The API answers 404 with its own `detail` when no location has been
+        // recorded. Any other 404 is an error: a wrong base URL gets
+        // FastAPI's generic {"detail": "Not Found"}, or a non-JSON page.
+        $detail = $response->json('detail');
+        if ($response->status() === 404 && is_string($detail) && $detail !== 'Not Found') {
             return null;
         }
 
