@@ -5,24 +5,25 @@ namespace App\Http\Controllers;
 use App\Services\LifestreamApi;
 use App\Services\LifestreamApiException;
 use App\Support\FeedPeriod;
+use App\Support\LocationIcon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
  * The JSON feed behind the homepage tiles (POST /feed).
  *
- * The response shape is compatible with the pre-Laravel fetchNext.php, so
- * public/assets/js/nicave.js works unchanged. API failures are rendered as a
- * JSON 503 by the handler in bootstrap/app.php.
+ * Consumed by resources/js/lifestream/feed.js. The response shape follows the
+ * pre-Laravel fetchNext.php; API failures are rendered as a JSON 503 by the
+ * handler in bootstrap/app.php.
  */
 class FeedController extends Controller
 {
     private const BLOCK_SIZE = 100;
 
-    /** Seconds nicave.js waits before polling for new items. */
+    /** Seconds the frontend waits before polling for new items. */
     private const POLL_SECONDS = 30;
 
-    /** Seconds nicave.js waits before fetching the next page of a period. */
+    /** Seconds the frontend waits before fetching the next page of a period. */
     private const NEXT_PAGE_SECONDS = 2;
 
     /**
@@ -116,9 +117,8 @@ class FeedController extends Controller
     }
 
     /**
-     * Shape an API entry like the legacy database row the frontend expects:
-     * fulldata_json as a JSON string (formatting.js JSON.parse()s it), empty
-     * strings rather than nulls for url/image, and off-site images proxied.
+     * Shape an API entry for the frontend: empty strings rather than nulls for
+     * url/image, and off-site images proxied.
      *
      * @param  array<string, mixed>  $entry
      * @return array<string, mixed>
@@ -126,14 +126,11 @@ class FeedController extends Controller
     private function formatEntry(array $entry): array
     {
         $entry['url'] = $entry['url'] ?? '';
-        $entry['image'] = $entry['image'] ?? '';
+        // Some importers stored "0" for "no image".
+        $entry['image'] = in_array($entry['image'] ?? '', ['', '0'], true) ? '' : $entry['image'];
 
         if ($entry['image'] !== '' && parse_url((string) $entry['image'], PHP_URL_HOST) !== 'art.istic.net') {
             $entry['image'] = self::IMAGE_PROXY.urlencode((string) $entry['image']);
-        }
-
-        if (isset($entry['fulldata_json'])) {
-            $entry['fulldata_json'] = json_encode($entry['fulldata_json'], JSON_THROW_ON_ERROR);
         }
 
         return $entry;
@@ -169,8 +166,8 @@ class FeedController extends Controller
                 'title' => $point['title'] ?? '',
                 'value' => $point['count'],
             ];
-            if (! empty($point['icon'])) {
-                $location['icon'] = $point['icon'];
+            if (($icon = LocationIcon::url($point['icon'] ?? null)) !== null) {
+                $location['icon'] = $icon;
             }
             $locations[] = $location;
         }

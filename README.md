@@ -27,8 +27,15 @@ Locations are only ever shown at the API's rounded precision (`*_vague`:
 2 decimal places, roughly 1 km): the app calls the API unauthenticated, and the API redacts
 precise coordinates for unauthenticated callers.
 
-The frontend (jQuery, Packery, Leaflet, `public/assets/`) is ported as-is from
-the pre-Laravel site; modernising it is tracked separately.
+The frontend is bundled by Vite from `resources/`:
+
+- `resources/js/lifestream/home.js` is the homepage tiles. `feed.js` loads them from `/feed`, `formatting.js` styles each service's tiles, and they're laid out with Packery.
+- `resources/js/lifestream/heatmap.js` is the `/maps` and `/today` pages, using Leaflet and leaflet.heat (`map.js`).
+- `resources/css/lifestream.css` is the site's stylesheet, and `resources/images/` holds icons, referenced with `Vite::asset()`.
+
+firth's nginx serves only `public/build/` from disk, so every static file has
+to go through Vite. `/favicon.ico`, `/robots.txt` and `/site.webmanifest` are
+served by routes instead.
 
 ## Getting started
 

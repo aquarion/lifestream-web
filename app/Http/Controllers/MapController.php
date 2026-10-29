@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\LifestreamApi;
 use App\Support\FeedPeriod;
+use App\Support\LocationIcon;
 use DateTimeImmutable;
 use DateTimeZone;
 use Illuminate\Contracts\View\View;
@@ -26,7 +27,7 @@ class MapController extends Controller
      */
     public function heatmap(Request $request): View
     {
-        return $this->map($this->year($request), 30, 5000);
+        return $this->map($this->year($request), 30, 20);
     }
 
     /**
@@ -35,7 +36,7 @@ class MapController extends Controller
      */
     public function today(Request $request): View
     {
-        return $this->map($this->year($request), 1, 50);
+        return $this->map($this->year($request), 1, 12);
     }
 
     public function lastSeen(): JsonResponse
@@ -51,14 +52,14 @@ class MapController extends Controller
             'long' => $location['long_vague'],
             'title' => $location['title'] ?: $this->formatTimestamp($location['timestamp']),
         ];
-        if (! empty($location['icon'])) {
-            $entry['icon'] = $location['icon'];
+        if (($icon = LocationIcon::url($location['icon'] ?? null)) !== null) {
+            $entry['icon'] = $icon;
         }
 
         return response()->json([$entry]);
     }
 
-    private function map(?int $year, int $days, int $heatmapSize): View
+    private function map(?int $year, int $days, int $heatmapRadius): View
     {
         if ($year !== null) {
             $from = $this->toDate((int) mktime(0, 0, 0, 1, 1, $year));
@@ -75,7 +76,7 @@ class MapController extends Controller
         return view('map', [
             'title' => $title,
             'locations' => $this->collapse($points),
-            'heatmapSize' => $heatmapSize,
+            'heatmapRadius' => $heatmapRadius,
         ]);
     }
 
@@ -105,8 +106,8 @@ class MapController extends Controller
                     'title' => $point['title'] ? $point['title'].' - '.$timestamp : $timestamp,
                     'source' => $point['source'],
                 ];
-                if (! empty($point['icon'])) {
-                    $entry['icon'] = $point['icon'];
+                if (($icon = LocationIcon::url($point['icon'] ?? null)) !== null) {
+                    $entry['icon'] = $icon;
                 }
                 $locations[] = $entry;
             }

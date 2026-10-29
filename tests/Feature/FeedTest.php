@@ -49,7 +49,7 @@ it('returns a day of entries in the legacy feed shape', function () {
         'locations' => [['lat' => 51.5, 'long' => -0.12, 'title' => 'Home', 'value' => 4]],
     ]);
     expect($response->json('locations'))->toHaveCount(1)
-        ->and($response->json('items.0.fulldata_json'))->toBe('{"text":"Hello"}')
+        ->and($response->json('items.0.fulldata_json'))->toBe(['text' => 'Hello'])
         ->and($response->json('items.0.url'))->toBe('')
         ->and($response->json('items.0.image'))->toBe('')
         ->and($response->json())->not->toHaveKey('log');
@@ -127,14 +127,16 @@ it('proxies off-site images', function () {
         'lifestream.test/v1/entries*' => Http::response(apiPage([
             apiEntry(['image' => 'https://example.com/a.png']),
             apiEntry(['image' => 'https://art.istic.net/icon.png']),
-        ], 2)),
+            apiEntry(['image' => '0']),
+        ], 3)),
         'lifestream.test/v1/locations/heatmap*' => Http::response([]),
     ]);
 
     $response = postJson('/feed', ['path' => '/2019'])->assertOk();
 
     expect($response->json('items.0.image'))->toBe('http://art.istic.net/lifestreamprox/?url=https%3A%2F%2Fexample.com%2Fa.png')
-        ->and($response->json('items.1.image'))->toBe('https://art.istic.net/icon.png');
+        ->and($response->json('items.1.image'))->toBe('https://art.istic.net/icon.png')
+        ->and($response->json('items.2.image'))->toBe('');
 });
 
 it('shows xkcd for the future without calling the API', function () {

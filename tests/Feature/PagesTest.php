@@ -26,7 +26,7 @@ function apiLocation(array $overrides = []): array
 }
 
 it('renders the homepage shell', function (string $path) {
-    get($path)->assertOk()->assertSee('id="tiles"', false)->assertSee('/assets/js/nicave.js', false);
+    get($path)->assertOk()->assertSee('id="tiles"', false);
 })->with(['/', '/2019', '/2019/wk12', '/2019/03', '/2019/03/05', '/*/03/05', '/search/hello']);
 
 it('renders the year strip', function () {
@@ -49,7 +49,7 @@ it('renders the 30 day heatmap with rounded coordinates', function () {
     get('/maps')
         ->assertOk()
         ->assertViewHas('title', 'Heatmap of locations last 30 days')
-        ->assertViewHas('heatmapSize', 5000)
+        ->assertViewHas('heatmapRadius', 20)
         ->assertViewHas('locations', [
             ['lat' => 51.5, 'long' => -0.12, 'title' => '2019-03-05 12:00:00', 'source' => 'owntracks'],
             ['lat' => 51.6, 'long' => -0.12, 'title' => 'Work - 2019-03-05 13:00:00', 'source' => 'owntracks'],
@@ -77,7 +77,7 @@ it('renders the one day heatmap up to now', function () {
     get('/today')
         ->assertOk()
         ->assertViewHas('title', 'Heatmap of locations last 1 days')
-        ->assertViewHas('heatmapSize', 50);
+        ->assertViewHas('heatmapRadius', 12);
 
     Http::assertSent(fn (Request $request) => $request['to'] === date('Y-m-d\TH:i:s')
         || $request['to'] === date('Y-m-d\TH:i:s', time() - 1));
@@ -109,6 +109,22 @@ it('redirects legacy php URLs, keeping the query string', function () {
     get('/lastseen.php')->assertStatus(301)->assertRedirect('/lastseen');
 });
 
+it('serves the files browsers fetch from fixed paths', function () {
+    get('/robots.txt')->assertOk()->assertHeader('Content-Type', 'text/plain; charset=utf-8');
+    get('/favicon.ico')->assertStatus(301);
+    getJson('/site.webmanifest')->assertOk()->assertJsonPath('name', 'NicAve')->assertJsonCount(2, 'icons');
+});
+
 it('redirects /cv to the CV document', function () {
     get('/cv')->assertRedirectContains('docs.google.com');
+});
+
+it('only keeps location icons that are URLs', function () {
+    Http::fake(['lifestream.test/v1/locations*' => Http::response([
+        apiLocation(['icon' => '74']),
+        apiLocation(['lat_vague' => 51.6, 'icon' => 'https://example.com/pin_64.png']),
+    ])]);
+
+    get('/maps')->assertOk()->assertViewHas('locations', fn (array $locations) => ! isset($locations[0]['icon'])
+        && $locations[1]['icon'] === 'https://example.com/pin_64.png');
 });

@@ -2,36 +2,19 @@
 <html>
 <head>
 	<meta charset="utf-8">
-	<script src="//code.jquery.com/jquery-1.10.2.min.js"></script>
-	<script src="//cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.min.js"></script>
-	<script src="/assets/js/packery.pkgd.min.js"></script>
-	<script src="//unpkg.com/twemoji@14.0.2/dist/twemoji.min.js"></script>
-	<script src="/assets/libs/md5-min.js"></script>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
 
 	<link href='//fonts.googleapis.com/css?family=PT+Mono|Raleway|Comfortaa' rel='stylesheet' type='text/css'>
-	<link rel="stylesheet" href="/assets/css/style.css">
-
 	@include('partials.icons')
-
-	<!-- Map stuff -->
-	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.1.0/dist/leaflet.css"  crossorigin=""/>
-	<script src="https://unpkg.com/leaflet@1.1.0/dist/leaflet.js" crossorigin=""></script>
-	<script type="text/javascript" src="/assets/js/webgl-heatmap-master/webgl-heatmap.js"></script>
-	<script type="text/javascript" src="/assets/js/leaflet-webgl-heatmap-master/dist/leaflet-webgl-heatmap.min.js"></script>
-	<!-- /Map stuff -->
-
-	<script type="text/javascript" src="/assets/js/library.js"></script>
-	<script type="text/javascript" src="/assets/js/formatting.js"></script>
-	<script type="text/javascript" src="/assets/js/nicave.js"></script>
 	<link rel="stylesheet" href="https://dailyphoto.aquarionics.com/background.css.php?from={{ date('Y-m-d', $period->today) }}"/>
-	@vite('resources/js/app.js')
+	@vite(['resources/js/app.js', 'resources/js/lifestream/home.js'])
 
 	<title>Nicholas Avenell - Web Person</title>
 
 <style type="text/css">
 
 span#glasses {
-	background: url('/assets/icons/mstile-70x70.png');
+	background: url('{{ Vite::asset('resources/images/icons/mstile-70x70.png') }}');
     background-size: cover;
 	background-repeat: no-repeat;
 	background-position: center;
