@@ -1,5 +1,6 @@
 // The homepage: loads tiles from POST /feed and lays them out with Packery,
 // polling for newer items. Ported from the pre-Laravel nicave.js.
+// An optional SourceFilter (filter.js) chooses which sources are left out.
 
 import Chart from 'chart.js/auto';
 import Packery from 'packery';
@@ -9,22 +10,58 @@ import { drawLocations, mapboxLayer } from './map.js';
 
 const MAP_ID = 'mapcanvas';
 
+/** Milliseconds to wait before retrying a /feed request that failed. */
+const RETRY_DELAY = 30_000;
+
 export class Feed {
-    constructor(container) {
+    constructor(container, filter = null) {
         this.container = container;
-        this.packery = new Packery(container, { gutter: 0 });
+        this.filter = filter;
+        this.packery = this.newPackery();
         this.seen = new Set();
         this.newest = new Date(0);
         this.context = { lastfm: {} };
         this.musicChart = null;
+        this.map = null;
+        // Bumped on reload(), so responses to requests already in flight are discarded.
+        this.generation = 0;
+        this.timer = null;
     }
 
     start() {
         this.fetch({});
     }
 
+    newPackery() {
+        return new Packery(this.container, { gutter: 0 });
+    }
+
+    /** Drop every tile and load the feed again from the start, e.g. after the filter changes. */
+    reload() {
+        clearTimeout(this.timer);
+        this.generation++;
+        // Packery.remove() fades tiles out before detaching them, which would
+        // leave the old map in the page for render() to find. Start afresh instead.
+        this.map?.remove();
+        this.map = null;
+        this.musicChart?.destroy();
+        this.musicChart = null;
+        this.packery.destroy();
+        this.container.replaceChildren();
+        this.packery = this.newPackery();
+
+        this.seen.clear();
+        this.newest = new Date(0);
+        this.context.lastfm = {};
+        this.start();
+    }
+
     async fetch(params) {
+        const generation = this.generation;
         const body = new URLSearchParams({ path: window.location.pathname, ...params });
+        for (const source of this.filter?.exclusions ?? []) {
+            body.append('exclude[]', source);
+        }
 
         try {
             const response = await fetch('/feed', {
@@ -35,9 +72,16 @@ export class Feed {
             if (!response.ok) {
                 throw new Error(`Feed returned ${response.status}`);
             }
-            this.render(await response.json());
+            const data = await response.json();
+            if (generation === this.generation) {
+                this.render(data);
+            }
         } catch (error) {
             console.error('[lifestream] Could not load the feed:', error);
+            if (generation === this.generation) {
+                document.getElementById('message').textContent = 'Could not load the feed. Trying again shortly…';
+                this.timer = setTimeout(() => this.fetch(params), RETRY_DELAY);
+            }
         }
     }
 
@@ -83,9 +127,9 @@ export class Feed {
 
         const delay = data.next * 1000;
         if (data.offset) {
-            setTimeout(() => this.fetch({ offset: data.offset }), delay);
+            this.timer = setTimeout(() => this.fetch({ offset: data.offset }), delay);
         } else {
-            setTimeout(() => this.fetch({ after: this.newest.toISOString() }), delay);
+            this.timer = setTimeout(() => this.fetch({ after: this.newest.toISOString() }), delay);
         }
     }
 
@@ -103,6 +147,8 @@ export class Feed {
 
     /** Build a tile for one entry, or null if it shouldn't be shown. */
     tile(object) {
+        this.filter?.add(object.source);
+
         const key = `${object.type}\u0000${object.systemid}`;
         if (this.seen.has(key) || (!object.title && !object.image)) {
             return null;
@@ -151,13 +197,13 @@ export class Feed {
         this.container.append(element);
         this.packery.appended(element);
 
-        const map = drawLocations(element, locations, {
+        this.map = drawLocations(element, locations, {
             baseLayer: mapboxLayer('mapbox/light-v9'),
             radius: 12,
             weight: 0.7,
             iconWeight: 1,
         });
-        if (!map) {
+        if (!this.map) {
             this.packery.remove(element);
         }
     }

@@ -26,6 +26,11 @@ class FeedController extends Controller
     /** Seconds the frontend waits before fetching the next page of a period. */
     private const NEXT_PAGE_SECONDS = 2;
 
+    /** Limits on exclude[], so a crafted request can't build an over-long API URL. */
+    private const MAX_EXCLUDED_SOURCES = 50;
+
+    private const MAX_SOURCE_LENGTH = 100;
+
     /**
      * Off-site images are loaded through this caching proxy on art.istic.net,
      * so the page doesn't hotlink (and break on) third-party image URLs.
@@ -69,7 +74,7 @@ class FeedController extends Controller
             return response()->json($return);
         }
 
-        $page = $this->fetchEntries($period, $offset, $after);
+        $page = $this->fetchEntries($period, $offset, $after, $this->excludedSources($request));
 
         $return['max'] = $page['total'];
         $max = $period->kind === 'recent' ? FeedPeriod::RECENT_MAX : null;
@@ -96,12 +101,13 @@ class FeedController extends Controller
     }
 
     /**
+     * @param  list<string>  $excludeSources
      * @return array{items: list<array<string, mixed>>, total: int, offset: int, limit: int}
      */
-    private function fetchEntries(FeedPeriod $period, int $offset, ?string $after): array
+    private function fetchEntries(FeedPeriod $period, int $offset, ?string $after, array $excludeSources): array
     {
         if ($period->kind === 'search') {
-            return $this->api->search((string) $period->search, $offset, self::BLOCK_SIZE);
+            return $this->api->search((string) $period->search, $offset, self::BLOCK_SIZE, $excludeSources);
         }
 
         return $this->api->entries(
@@ -113,7 +119,32 @@ class FeedController extends Controller
             order: $period->kind === 'recent' ? 'desc' : 'asc',
             month: $period->month,
             day: $period->day,
+            excludeSources: $excludeSources,
         );
+    }
+
+    /**
+     * The sources the viewer has filtered out (exclude[]), as chosen in the
+     * page's filter menu (resources/js/lifestream/filter.js).
+     *
+     * A non-array exclude is ignored; non-string, empty and over-long values
+     * and duplicates are dropped, and only the first MAX_EXCLUDED_SOURCES kept.
+     *
+     * @return list<string>
+     */
+    private function excludedSources(Request $request): array
+    {
+        $exclude = $request->input('exclude', []);
+        if (! is_array($exclude)) {
+            return [];
+        }
+
+        $sources = array_filter(
+            $exclude,
+            fn ($source) => is_string($source) && $source !== '' && strlen($source) <= self::MAX_SOURCE_LENGTH,
+        );
+
+        return array_slice(array_values(array_unique($sources)), 0, self::MAX_EXCLUDED_SOURCES);
     }
 
     /**

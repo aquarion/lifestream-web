@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use DateTimeInterface;
+use GuzzleHttp\Psr7\Query;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
@@ -30,6 +31,7 @@ class LifestreamApi
 
     /**
      * @param  'asc'|'desc'  $order
+     * @param  list<string>  $excludeSources  Sources to leave out; the API excludes none by default.
      * @return array{items: list<array<string, mixed>>, total: int, offset: int, limit: int}
      */
     public function entries(
@@ -41,6 +43,7 @@ class LifestreamApi
         string $order = 'asc',
         ?int $month = null,
         ?int $day = null,
+        array $excludeSources = [],
     ): array {
         $query = array_filter([
             'from' => $this->formatDate($from),
@@ -51,17 +54,24 @@ class LifestreamApi
             'order' => $order === 'asc' ? null : $order,
             'month' => $month,
             'day' => $day,
+            'exclude_source' => $excludeSources ?: null,
         ], fn ($value) => $value !== null);
 
         return $this->get('/entries', $query);
     }
 
     /**
+     * @param  list<string>  $excludeSources  Sources to leave out; the API excludes none by default.
      * @return array{items: list<array<string, mixed>>, total: int, offset: int, limit: int}
      */
-    public function search(string $q, int $offset = 0, int $limit = 100): array
+    public function search(string $q, int $offset = 0, int $limit = 100, array $excludeSources = []): array
     {
-        return $this->get('/entries/search', ['q' => $q, 'offset' => $offset, 'limit' => $limit]);
+        return $this->get('/entries/search', array_filter([
+            'q' => $q,
+            'offset' => $offset,
+            'limit' => $limit,
+            'exclude_source' => $excludeSources ?: null,
+        ], fn ($value) => $value !== null));
     }
 
     /**
@@ -123,7 +133,11 @@ class LifestreamApi
     private function send(string $path, array $query): Response
     {
         try {
-            return $this->request()->get(ltrim($path, '/'), $query);
+            // Every request's query string goes through Query::build, which
+            // repeats a key for each value of a list (exclude_source=a&exclude_source=b),
+            // as FastAPI reads list params. Laravel's default would send
+            // exclude_source%5B0%5D=a.
+            return $this->request()->get(ltrim($path, '/'), Query::build($query));
         } catch (ConnectionException $e) {
             throw new LifestreamApiException("Lifestream API unreachable: {$e->getMessage()}", 0, $e);
         }

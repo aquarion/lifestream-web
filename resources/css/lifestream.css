@@ -478,3 +478,56 @@ header .buttons {
     background-size: cover;
     background-repeat: no-repeat;
 }
+
+/* The source filter menu (resources/js/lifestream/filter.js). */
+#filter {
+    position: fixed;
+    top: 0.5em;
+    left: 0.5em;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 0.5em;
+    max-height: calc(100vh - 1em);
+    overflow-y: auto;
+}
+
+#filter summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 0.4em;
+    line-height: 0;
+}
+
+#filter summary::-webkit-details-marker {
+    display: none;
+}
+
+#filter summary:focus-visible {
+    outline: 2px solid white;
+    border-radius: 0.5em;
+}
+
+#filter fieldset {
+    border: 0;
+    margin: 0;
+    padding: 0 1em 0.75em 0.75em;
+}
+
+#filter legend {
+    padding: 0;
+    font-family: 'Comfortaa', sans-serif;
+}
+
+#filter ul {
+    list-style: none;
+    margin: 0.5em 0 0;
+    padding: 0;
+}
+
+#filter li {
+    white-space: nowrap;
+}
+
+#filter label {
+    cursor: pointer;
+}

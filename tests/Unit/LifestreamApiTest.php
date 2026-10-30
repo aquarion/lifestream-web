@@ -37,6 +37,36 @@ it('only sends order when it is not the default', function () {
         && ! isset($request['from']));
 });
 
+it('repeats exclude_source for each excluded source', function () {
+    Http::fake(['*' => Http::response(['items' => [], 'total' => 0, 'offset' => 0, 'limit' => 100])]);
+
+    api()->entries(excludeSources: ['tumblr', 'WordPress.com']);
+    api()->search('x', excludeSources: ['tumblr']);
+
+    Http::assertSent(fn (Request $request) => $request->url() === 'https://lifestream.test/v1/entries?offset=0&limit=100&exclude_source=tumblr&exclude_source=WordPress.com');
+    Http::assertSent(fn (Request $request) => $request->url() === 'https://lifestream.test/v1/entries/search?q=x&offset=0&limit=100&exclude_source=tumblr');
+});
+
+it('sends no exclude_source when nothing is excluded', function () {
+    Http::fake(['*' => Http::response(['items' => [], 'total' => 0, 'offset' => 0, 'limit' => 100])]);
+
+    api()->search('x');
+
+    Http::assertSent(fn (Request $request) => $request->url() === 'https://lifestream.test/v1/entries/search?q=x&offset=0&limit=100');
+});
+
+it('sends heatmap filters', function () {
+    Http::fake(['*' => Http::response([])]);
+
+    api()->heatmap(
+        new DateTimeImmutable('2019-03-05 03:00:00'),
+        new DateTimeImmutable('2019-03-06 03:00:00'),
+        'foursquare',
+    );
+
+    Http::assertSent(fn (Request $request) => $request->url() === 'https://lifestream.test/v1/locations/heatmap?from=2019-03-05T03%3A00%3A00&to=2019-03-06T03%3A00%3A00&source=foursquare');
+});
+
 it('throws with the status when the API errors', function () {
     Http::fake(['*' => Http::response(['detail' => 'Rate limit exceeded'], 429)]);
 

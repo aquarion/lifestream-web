@@ -11,6 +11,7 @@
     "require": {
         "php": "^8.3",
         "ext-opentelemetry": "*",
+        "guzzlehttp/psr7": "^3.2",
         "laravel/framework": "^13.8",
         "laravel/tinker": "^3.0",
         "open-telemetry/exporter-otlp": "^1.4",
