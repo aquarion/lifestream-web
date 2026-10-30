@@ -479,7 +479,7 @@ header .buttons {
     background-repeat: no-repeat;
 }
 
-/* The content-type filter menu (resources/js/lifestream/filter.js). */
+/* The source filter menu (resources/js/lifestream/filter.js). */
 #filter {
     position: fixed;
     top: 0.5em;

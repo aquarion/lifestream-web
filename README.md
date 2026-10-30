@@ -29,7 +29,7 @@ precise coordinates for unauthenticated callers.
 
 The frontend is bundled by Vite from `resources/`:
 
-- `resources/js/lifestream/home.js` is the homepage tiles. `feed.js` loads them from `/feed`, `formatting.js` styles each service's tiles, and they're laid out with Packery. `filter.js` is the content-type menu in the top left: unchecked sources are sent to `/feed` as `exclude[]` and on to the API as `exclude_source` (tumblr and lastfm start unchecked), and remembered in the viewer's localStorage.
+- `resources/js/lifestream/home.js` is the homepage tiles. `feed.js` loads them from `/feed`, `formatting.js` styles each service's tiles, and they're laid out with Packery. `filter.js` is the filter menu in the top left, with a checkbox per entry source: unchecked sources are sent to `/feed` as `exclude[]` and on to the API as `exclude_source` (tumblr and lastfm start unchecked), and remembered in the viewer's localStorage.
 - `resources/js/lifestream/heatmap.js` is the `/maps` and `/today` pages, using Leaflet and leaflet.heat (`map.js`).
 - `resources/css/lifestream.css` is the site's stylesheet, and `resources/images/` holds icons, referenced with `Vite::asset()`.
 

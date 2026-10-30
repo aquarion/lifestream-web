@@ -133,9 +133,10 @@ class LifestreamApi
     private function send(string $path, array $query): Response
     {
         try {
-            // Query::build repeats a key for each value of a list
-            // (exclude_source=a&exclude_source=b), which is how FastAPI reads
-            // list params; Laravel's default would send exclude_source[0]=a.
+            // Every request's query string goes through Query::build, which
+            // repeats a key for each value of a list (exclude_source=a&exclude_source=b),
+            // as FastAPI reads list params. Laravel's default would send
+            // exclude_source%5B0%5D=a.
             return $this->request()->get(ltrim($path, '/'), Query::build($query));
         } catch (ConnectionException $e) {
             throw new LifestreamApiException("Lifestream API unreachable: {$e->getMessage()}", 0, $e);

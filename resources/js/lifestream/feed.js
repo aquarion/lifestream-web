@@ -10,16 +10,20 @@ import { drawLocations, mapboxLayer } from './map.js';
 
 const MAP_ID = 'mapcanvas';
 
+/** Milliseconds to wait before retrying a /feed request that failed. */
+const RETRY_DELAY = 30_000;
+
 export class Feed {
     constructor(container, filter = null) {
         this.container = container;
         this.filter = filter;
-        this.packery = new Packery(container, { gutter: 0 });
+        this.packery = this.newPackery();
         this.seen = new Set();
         this.newest = new Date(0);
         this.context = { lastfm: {} };
         this.musicChart = null;
-        // Bumped on reload(), so responses and polls for the old feed are ignored.
+        this.map = null;
+        // Bumped on reload(), so responses to requests already in flight are discarded.
         this.generation = 0;
         this.timer = null;
     }
@@ -28,16 +32,27 @@ export class Feed {
         this.fetch({});
     }
 
+    newPackery() {
+        return new Packery(this.container, { gutter: 0 });
+    }
+
     /** Drop every tile and load the feed again from the start, e.g. after the filter changes. */
     reload() {
         clearTimeout(this.timer);
         this.generation++;
-        this.packery.remove([...this.container.children]);
+        // Packery.remove() fades tiles out before detaching them, which would
+        // leave the old map in the page for render() to find. Start afresh instead.
+        this.map?.remove();
+        this.map = null;
+        this.musicChart?.destroy();
+        this.musicChart = null;
+        this.packery.destroy();
+        this.container.replaceChildren();
+        this.packery = this.newPackery();
+
         this.seen.clear();
         this.newest = new Date(0);
         this.context.lastfm = {};
-        this.musicChart?.destroy();
-        this.musicChart = null;
         this.start();
     }
 
@@ -63,6 +78,10 @@ export class Feed {
             }
         } catch (error) {
             console.error('[lifestream] Could not load the feed:', error);
+            if (generation === this.generation) {
+                document.getElementById('message').textContent = 'Could not load the feed. Trying again shortly…';
+                this.timer = setTimeout(() => this.fetch(params), RETRY_DELAY);
+            }
         }
     }
 
@@ -178,13 +197,13 @@ export class Feed {
         this.container.append(element);
         this.packery.appended(element);
 
-        const map = drawLocations(element, locations, {
+        this.map = drawLocations(element, locations, {
             baseLayer: mapboxLayer('mapbox/light-v9'),
             radius: 12,
             weight: 0.7,
             iconWeight: 1,
         });
-        if (!map) {
+        if (!this.map) {
             this.packery.remove(element);
         }
     }

@@ -134,9 +134,28 @@ it('passes excluded sources to search', function () {
 it('excludes no sources unless asked', function () {
     Http::fake(['lifestream.test/v1/entries*' => Http::response(apiPage([], 0))]);
 
+    postJson('/feed', ['path' => '/*/03/05'])->assertOk();
+
+    Http::assertSent(fn (Request $request) => str_contains($request->url(), '/entries') && ! str_contains($request->url(), 'exclude_source'));
+});
+
+it('ignores a non-array exclude', function () {
+    Http::fake(['lifestream.test/v1/entries*' => Http::response(apiPage([], 0))]);
+
     postJson('/feed', ['path' => '/*/03/05', 'exclude' => 'tumblr'])->assertOk();
 
     Http::assertSent(fn (Request $request) => str_contains($request->url(), '/entries') && ! str_contains($request->url(), 'exclude_source'));
+});
+
+it('limits how many sources can be excluded, and how long they can be', function () {
+    Http::fake(['lifestream.test/v1/entries*' => Http::response(apiPage([], 0))]);
+
+    $sources = array_map(fn (int $i) => "source{$i}", range(1, 60));
+    postJson('/feed', ['path' => '/*/03/05', 'exclude' => [str_repeat('x', 101), 'tumblr', 'tumblr', ...$sources]])->assertOk();
+
+    Http::assertSent(fn (Request $request) => substr_count($request->url(), 'exclude_source=') === 50
+        && substr_count($request->url(), 'exclude_source=tumblr&') === 1
+        && ! str_contains($request->url(), 'xxx'));
 });
 
 it('filters any-year days by month and day', function () {

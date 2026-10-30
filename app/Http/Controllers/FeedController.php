@@ -26,6 +26,11 @@ class FeedController extends Controller
     /** Seconds the frontend waits before fetching the next page of a period. */
     private const NEXT_PAGE_SECONDS = 2;
 
+    /** Limits on exclude[], so a crafted request can't build an over-long API URL. */
+    private const MAX_EXCLUDED_SOURCES = 50;
+
+    private const MAX_SOURCE_LENGTH = 100;
+
     /**
      * Off-site images are loaded through this caching proxy on art.istic.net,
      * so the page doesn't hotlink (and break on) third-party image URLs.
@@ -122,6 +127,9 @@ class FeedController extends Controller
      * The sources the viewer has filtered out (exclude[]), as chosen in the
      * page's filter menu (resources/js/lifestream/filter.js).
      *
+     * A non-array exclude is ignored; non-string, empty and over-long values
+     * and duplicates are dropped, and only the first MAX_EXCLUDED_SOURCES kept.
+     *
      * @return list<string>
      */
     private function excludedSources(Request $request): array
@@ -131,7 +139,12 @@ class FeedController extends Controller
             return [];
         }
 
-        return array_values(array_unique(array_filter($exclude, fn ($source) => is_string($source) && $source !== '')));
+        $sources = array_filter(
+            $exclude,
+            fn ($source) => is_string($source) && $source !== '' && strlen($source) <= self::MAX_SOURCE_LENGTH,
+        );
+
+        return array_slice(array_values(array_unique($sources)), 0, self::MAX_EXCLUDED_SOURCES);
     }
 
     /**
