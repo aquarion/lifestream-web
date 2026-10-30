@@ -27,7 +27,7 @@ function apiLocation(array $overrides = []): array
 
 it('renders the homepage shell', function (string $path) {
     get($path)->assertOk()->assertSee('id="tiles"', false);
-})->with(['/', '/2019', '/2019/wk12', '/2019/03', '/2019/03/05', '/*/03/05', '/search/hello']);
+})->with(['/', '/2019', '/2019/wk12', '/2019/03', '/2019/03/05', '/*/03/05', '/%2A/03/05', '/search/hello']);
 
 it('renders the year strip', function () {
     get('/2019/03/05')

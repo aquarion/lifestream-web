@@ -68,6 +68,11 @@ final class FeedPeriod
 
         $count = count($split);
 
+        // Browsers may percent-encode the "*" of "/*/MM/DD" as "%2A".
+        if ($count > 0 && $split[0] === '%2A') {
+            $split[0] = '*';
+        }
+
         if ($count > 0 && $split[0] === 'search') {
             $term = urldecode($split[1] ?? '');
 
