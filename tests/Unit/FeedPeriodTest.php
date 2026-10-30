@@ -93,6 +93,14 @@ it('escapes the search term in the message but not the query', function () {
         ->and($period->title)->toBe($period->message);
 });
 
+it('accepts a percent-encoded * in the any-year path', function () {
+    $period = FeedPeriod::fromPath('/%2A/03/05');
+
+    expect($period->kind)->toBe('anyday')
+        ->and($period->month)->toBe(3)
+        ->and($period->day)->toBe(5);
+});
+
 it('parses a search', function () {
     $period = FeedPeriod::fromPath('/search/hello%20world');
 
