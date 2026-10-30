@@ -13,9 +13,27 @@ body {
     color: white;
 }
 
+h1,
+h2,
+h3,
+h4 {
+    font-family: 'Comfortaa', sans-serif;
+    text-shadow: 3px 3px 5px rgba(0, 0, 0, 0.7);
+}
+
+h2 {
+    margin: 0.25em;
+}
+
 #tiles {
     font-size: 10pt;
     margin: 0 3em;
+}
+
+@media (max-width: 540px) {
+    #tiles {
+        margin: 0 0.5em;
+    }
 }
 
 header {
@@ -41,46 +59,13 @@ header h1 {
     font-size: 3em;
     text-align: center;
     padding: 0em 1em 0 1em;
+    /* The old page's broken doctype put it in quirks mode, which dropped this top margin; keep it flush. */
+    margin-top: 0;
     margin-bottom: 0em;
-}
-
-h1,
-h2,
-h3,
-h4 {
-    font-family: 'Comfortaa', sans-serif;
-    text-shadow: 3px 3px 5px rgba(0, 0, 0, 0.7);
-}
-
-h2 {
-    margin: 0.25em;
 }
 
 header .buttons {
     text-align: center;
-}
-
-#message,
-#navigation,
-#years {
-    text-align: center;
-    margin: 0.25em;
-}
-
-#navigation {
-    font-size: 2em;
-}
-
-#navigation a {
-    text-decoration: none;
-}
-
-#navigation a.navDisabled {
-    color: rgba(255, 255, 255, 0.3);
-}
-
-#years {
-    padding-bottom: 0.5em;
 }
 
 .item {
@@ -95,6 +80,8 @@ header .buttons {
     border-bottom: 1px solid rgba(0, 0, 0, 0.3);
     border-right: 1px solid rgba(0, 0, 0, 0.3);
     position: relative;
+    /* Tiles get fixed widths from the formatters; on a narrow screen, shrink them to fit (less padding and border). */
+    max-width: calc(100% - 12px);
 }
 
 .item img.icon {
@@ -202,6 +189,7 @@ header .buttons {
 
 .photo {
     width: 460px;
+    max-width: calc(100% - 40px);
     height: 360px;
     padding: 0;
     background-size: contain;
@@ -427,6 +415,29 @@ header .buttons {
 
 .facebook_status p {
     background: none;
+}
+
+#message,
+#navigation,
+#years {
+    text-align: center;
+    margin: 0.25em;
+}
+
+#navigation {
+    font-size: 2em;
+}
+
+#navigation a {
+    text-decoration: none;
+}
+
+#navigation a.navDisabled {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+#years {
+    padding-bottom: 0.5em;
 }
 
 .years {

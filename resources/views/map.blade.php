@@ -19,6 +19,7 @@
     </style>
 
     @vite(['resources/js/app.js', 'resources/js/lifestream/heatmap.js'])
+    @include('partials.matomo')
   </head>
   <body>
     <script type="application/json" id="locations">@json($locations)</script>
