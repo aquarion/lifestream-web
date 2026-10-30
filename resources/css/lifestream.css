@@ -13,6 +13,18 @@ body {
     color: white;
 }
 
+h1,
+h2,
+h3,
+h4 {
+    font-family: 'Comfortaa', sans-serif;
+    text-shadow: 3px 3px 5px rgba(0, 0, 0, 0.7);
+}
+
+h2 {
+    margin: 0.25em;
+}
+
 #tiles {
     font-size: 10pt;
     margin: 0 3em;
@@ -44,43 +56,8 @@ header h1 {
     margin-bottom: 0em;
 }
 
-h1,
-h2,
-h3,
-h4 {
-    font-family: 'Comfortaa', sans-serif;
-    text-shadow: 3px 3px 5px rgba(0, 0, 0, 0.7);
-}
-
-h2 {
-    margin: 0.25em;
-}
-
 header .buttons {
     text-align: center;
-}
-
-#message,
-#navigation,
-#years {
-    text-align: center;
-    margin: 0.25em;
-}
-
-#navigation {
-    font-size: 2em;
-}
-
-#navigation a {
-    text-decoration: none;
-}
-
-#navigation a.navDisabled {
-    color: rgba(255, 255, 255, 0.3);
-}
-
-#years {
-    padding-bottom: 0.5em;
 }
 
 .item {
@@ -427,6 +404,29 @@ header .buttons {
 
 .facebook_status p {
     background: none;
+}
+
+#message,
+#navigation,
+#years {
+    text-align: center;
+    margin: 0.25em;
+}
+
+#navigation {
+    font-size: 2em;
+}
+
+#navigation a {
+    text-decoration: none;
+}
+
+#navigation a.navDisabled {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+#years {
+    padding-bottom: 0.5em;
 }
 
 .years {
