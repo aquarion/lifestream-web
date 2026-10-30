@@ -30,6 +30,12 @@ h2 {
     margin: 0 3em;
 }
 
+@media (max-width: 540px) {
+    #tiles {
+        margin: 0 0.5em;
+    }
+}
+
 header {
     max-width: 760px;
     background: rgba(0, 0, 0, 0.8);
@@ -72,6 +78,8 @@ header .buttons {
     border-bottom: 1px solid rgba(0, 0, 0, 0.3);
     border-right: 1px solid rgba(0, 0, 0, 0.3);
     position: relative;
+    /* Tiles get fixed widths from the formatters; on a narrow screen, shrink them to fit (less padding and border). */
+    max-width: calc(100% - 12px);
 }
 
 .item img.icon {
@@ -179,6 +187,7 @@ header .buttons {
 
 .photo {
     width: 460px;
+    max-width: calc(100% - 40px);
     height: 360px;
     padding: 0;
     background-size: contain;
