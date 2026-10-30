@@ -59,6 +59,8 @@ header h1 {
     font-size: 3em;
     text-align: center;
     padding: 0em 1em 0 1em;
+    /* The old page's broken doctype put it in quirks mode, which dropped this top margin; keep it flush. */
+    margin-top: 0;
     margin-bottom: 0em;
 }
 
