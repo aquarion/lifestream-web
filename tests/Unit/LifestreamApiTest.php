@@ -37,6 +37,16 @@ it('only sends order when it is not the default', function () {
         && ! isset($request['from']));
 });
 
+it('repeats exclude_source for each excluded source', function () {
+    Http::fake(['*' => Http::response(['items' => [], 'total' => 0, 'offset' => 0, 'limit' => 100])]);
+
+    api()->entries(excludeSources: ['tumblr', 'WordPress.com']);
+    api()->search('x', excludeSources: ['tumblr']);
+
+    Http::assertSent(fn (Request $request) => $request->url() === 'https://lifestream.test/v1/entries?offset=0&limit=100&exclude_source=tumblr&exclude_source=WordPress.com');
+    Http::assertSent(fn (Request $request) => $request->url() === 'https://lifestream.test/v1/entries/search?q=x&offset=0&limit=100&exclude_source=tumblr');
+});
+
 it('throws with the status when the API errors', function () {
     Http::fake(['*' => Http::response(['detail' => 'Rate limit exceeded'], 429)]);
 

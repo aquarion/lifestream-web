@@ -69,7 +69,7 @@ class FeedController extends Controller
             return response()->json($return);
         }
 
-        $page = $this->fetchEntries($period, $offset, $after);
+        $page = $this->fetchEntries($period, $offset, $after, $this->excludedSources($request));
 
         $return['max'] = $page['total'];
         $max = $period->kind === 'recent' ? FeedPeriod::RECENT_MAX : null;
@@ -96,12 +96,13 @@ class FeedController extends Controller
     }
 
     /**
+     * @param  list<string>  $excludeSources
      * @return array{items: list<array<string, mixed>>, total: int, offset: int, limit: int}
      */
-    private function fetchEntries(FeedPeriod $period, int $offset, ?string $after): array
+    private function fetchEntries(FeedPeriod $period, int $offset, ?string $after, array $excludeSources): array
     {
         if ($period->kind === 'search') {
-            return $this->api->search((string) $period->search, $offset, self::BLOCK_SIZE);
+            return $this->api->search((string) $period->search, $offset, self::BLOCK_SIZE, $excludeSources);
         }
 
         return $this->api->entries(
@@ -113,7 +114,24 @@ class FeedController extends Controller
             order: $period->kind === 'recent' ? 'desc' : 'asc',
             month: $period->month,
             day: $period->day,
+            excludeSources: $excludeSources,
         );
+    }
+
+    /**
+     * The sources the viewer has filtered out (exclude[]), as chosen in the
+     * page's filter menu (resources/js/lifestream/filter.js).
+     *
+     * @return list<string>
+     */
+    private function excludedSources(Request $request): array
+    {
+        $exclude = $request->input('exclude', []);
+        if (! is_array($exclude)) {
+            return [];
+        }
+
+        return array_values(array_unique(array_filter($exclude, fn ($source) => is_string($source) && $source !== '')));
     }
 
     /**

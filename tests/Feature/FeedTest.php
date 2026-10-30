@@ -114,6 +114,31 @@ it('searches titles', function () {
     Http::assertSent(fn (Request $request) => $request['q'] === 'hello world');
 });
 
+it('passes the viewer\'s excluded sources to the API', function () {
+    Http::fake(['lifestream.test/v1/entries*' => Http::response(apiPage([], 0))]);
+
+    postJson('/feed', ['path' => '/*/03/05', 'exclude' => ['tumblr', 'lastfm', '', ['nested']]])->assertOk();
+
+    Http::assertSent(fn (Request $request) => str_contains($request->url(), 'exclude_source=tumblr&exclude_source=lastfm')
+        && substr_count($request->url(), 'exclude_source=') === 2);
+});
+
+it('passes excluded sources to search', function () {
+    Http::fake(['lifestream.test/v1/entries/search*' => Http::response(apiPage([], 0))]);
+
+    postJson('/feed', ['path' => '/search/x', 'exclude' => ['tumblr']])->assertOk();
+
+    Http::assertSent(fn (Request $request) => str_contains($request->url(), 'exclude_source=tumblr'));
+});
+
+it('excludes no sources unless asked', function () {
+    Http::fake(['lifestream.test/v1/entries*' => Http::response(apiPage([], 0))]);
+
+    postJson('/feed', ['path' => '/*/03/05', 'exclude' => 'tumblr'])->assertOk();
+
+    Http::assertSent(fn (Request $request) => str_contains($request->url(), '/entries') && ! str_contains($request->url(), 'exclude_source'));
+});
+
 it('filters any-year days by month and day', function () {
     Http::fake(['lifestream.test/v1/entries*' => Http::response(apiPage([], 0))]);
 
