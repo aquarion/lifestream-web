@@ -128,3 +128,28 @@ it('only keeps location icons that are URLs', function () {
     get('/maps')->assertOk()->assertViewHas('locations', fn (array $locations) => ! isset($locations[0]['icon'])
         && $locations[1]['icon'] === 'https://example.com/pin_64.png');
 });
+
+it('adds the Matomo tracker to the heatmap pages too', function () {
+    config([
+        'services.matomo.url' => 'https://stats.example.com',
+        'services.matomo.auth_token' => 'test-token',
+        'app.url' => 'https://lifestream.example.com',
+    ]);
+    Http::fake([
+        'lifestream.test/v1/locations*' => Http::response([]),
+        'stats.example.com/*' => Http::response([['idsite' => '7', 'main_url' => 'https://lifestream.example.com']]),
+    ]);
+
+    get('/maps')
+        ->assertOk()
+        ->assertSee('<script async src="https://stats.example.com/matomo.js"></script>', false)
+        ->assertSee("window._paq.push(['setSiteId', \"7\"]);", false);
+});
+
+it('links to Bluesky and not to Twitter or Facebook', function () {
+    get('/')
+        ->assertOk()
+        ->assertSee('https://bsky.app/profile/aquarionics.com', false)
+        ->assertDontSee('twitter.com/aquarion', false)
+        ->assertDontSee('facebook.com/aquarion', false);
+});
