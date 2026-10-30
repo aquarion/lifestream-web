@@ -40,4 +40,9 @@ return [
         'timeout' => (int) env('LIFESTREAM_API_TIMEOUT', 5),
     ],
 
+    'matomo' => [
+        'url' => env('MATOMO_URL'),
+        'site_id' => env('MATOMO_SITE_ID'),
+    ],
+
 ];

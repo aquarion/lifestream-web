@@ -128,3 +128,27 @@ it('only keeps location icons that are URLs', function () {
     get('/maps')->assertOk()->assertViewHas('locations', fn (array $locations) => ! isset($locations[0]['icon'])
         && $locations[1]['icon'] === 'https://example.com/pin_64.png');
 });
+
+it('leaves Matomo out unless it is configured', function () {
+    config(['services.matomo.url' => null, 'services.matomo.site_id' => null]);
+
+    get('/')->assertOk()->assertDontSee('matomo.php');
+});
+
+it('adds Matomo tracking when it is configured', function (string $path) {
+    Http::fake(['lifestream.test/v1/locations*' => Http::response([])]);
+    config(['services.matomo.url' => 'https://stats.example.com', 'services.matomo.site_id' => '7']);
+
+    get($path)
+        ->assertOk()
+        ->assertSee('stats.example.com', false)
+        ->assertSee("_paq.push(['setSiteId', '7'])", false);
+})->with(['/', '/maps']);
+
+it('links to Bluesky and not to Twitter or Facebook', function () {
+    get('/')
+        ->assertOk()
+        ->assertSee('https://bsky.app/profile/aquarionics.com', false)
+        ->assertDontSee('twitter.com/aquarion', false)
+        ->assertDontSee('facebook.com/aquarion', false);
+});
