@@ -1,6 +1,7 @@
 <?php
 
 use App\Services\MatomoService;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -10,8 +11,9 @@ beforeEach(function () {
     config([
         'services.matomo.url' => 'https://stat.istic.net',
         'services.matomo.auth_token' => 'test-token',
-        'app.url' => 'https://lifestream.example.com',
-        'app.name' => 'Lifestream',
+        'services.matomo.goals' => ['registration' => 'Registration complete'],
+        'app.url' => 'https://app.example.com',
+        'app.name' => 'Starter',
     ]);
 });
 
@@ -34,7 +36,7 @@ it('returns null and logs a warning with diagnostic context when the matomo api 
     Log::shouldReceive('warning')
         ->once()
         ->with('Matomo config lookup failed', Mockery::on(function (array $context) {
-            return $context['app_url'] === 'https://lifestream.example.com'
+            return $context['app_url'] === 'https://app.example.com'
                 && $context['matomo_url'] === 'https://stat.istic.net'
                 && $context['exception'] instanceof Throwable
                 && is_string($context['message']);
@@ -51,8 +53,8 @@ it('matches an existing matomo site ignoring a trailing slash difference', funct
             if ($method === 'SitesManager.getAllSites') {
                 return Http::response([[
                     'idsite' => '3',
-                    'main_url' => 'https://lifestream.example.com/',
-                    'name' => 'Lifestream',
+                    'main_url' => 'https://app.example.com/',
+                    'name' => 'Starter',
                 ]]);
             }
 
@@ -80,8 +82,8 @@ it('uses an existing matomo site when app url matches', function () {
             if ($method === 'SitesManager.getAllSites') {
                 return Http::response([[
                     'idsite' => '3',
-                    'main_url' => 'https://lifestream.example.com',
-                    'name' => 'Lifestream',
+                    'main_url' => 'https://app.example.com',
+                    'name' => 'Starter',
                 ]]);
             }
 
@@ -131,13 +133,64 @@ it('creates a new matomo site when none matches app url', function () {
     expect($config['site_id'])->toBe(7);
 });
 
+it('creates missing goals', function () {
+    Http::fake([
+        'stat.istic.net/*' => function ($request) {
+            $method = $request->data()['method'] ?? '';
+
+            if ($method === 'SitesManager.getAllSites') {
+                return Http::response([['idsite' => '3', 'main_url' => 'https://app.example.com']]);
+            }
+
+            if ($method === 'Goals.getGoals') {
+                return Http::response([]);
+            }
+
+            if ($method === 'Goals.addGoal') {
+                return Http::response(['value' => '5']);
+            }
+
+            return Http::response([], 200);
+        },
+    ]);
+
+    $config = (new MatomoService)->getConfig();
+
+    expect($config['goals']['registration'])->toBe(5);
+});
+
+it('uses existing goals instead of creating new ones', function () {
+    Http::fake([
+        'stat.istic.net/*' => function ($request) {
+            $method = $request->data()['method'] ?? '';
+
+            if ($method === 'SitesManager.getAllSites') {
+                return Http::response([['idsite' => '3', 'main_url' => 'https://app.example.com']]);
+            }
+
+            if ($method === 'Goals.getGoals') {
+                return Http::response([
+                    ['idgoal' => '2', 'name' => 'Registration complete'],
+                ]);
+            }
+
+            return Http::response([], 200);
+        },
+    ]);
+
+    $config = (new MatomoService)->getConfig();
+
+    expect($config['goals']['registration'])->toBe(2);
+    Http::assertNotSent(fn ($request) => str_contains($request->url(), 'Goals.addGoal'));
+});
+
 it('caches the config and does not call the api on subsequent requests', function () {
     Http::fake([
         'stat.istic.net/*' => function ($request) {
             $method = $request->data()['method'] ?? '';
 
             if ($method === 'SitesManager.getAllSites') {
-                return Http::response([['idsite' => '3', 'main_url' => 'https://lifestream.example.com']]);
+                return Http::response([['idsite' => '3', 'main_url' => 'https://app.example.com']]);
             }
 
             if ($method === 'Goals.getGoals') {
@@ -161,7 +214,7 @@ it('returns the tracker url in the config', function () {
             $method = $request->data()['method'] ?? '';
 
             if ($method === 'SitesManager.getAllSites') {
-                return Http::response([['idsite' => '3', 'main_url' => 'https://lifestream.example.com']]);
+                return Http::response([['idsite' => '3', 'main_url' => 'https://app.example.com']]);
             }
 
             if ($method === 'Goals.getGoals') {
@@ -177,21 +230,43 @@ it('returns the tracker url in the config', function () {
     expect($config['tracker_url'])->toBe('https://stat.istic.net');
 });
 
-it('defines no goals, so never creates any', function () {
+it('skips the goals api when no goals are configured', function () {
+    config(['services.matomo.goals' => []]);
+
     Http::fake([
-        'stat.istic.net/*' => function ($request) {
-            $method = $request->data()['method'] ?? '';
-
-            if ($method === 'SitesManager.getAllSites') {
-                return Http::response([['idsite' => '3', 'main_url' => 'https://lifestream.example.com']]);
-            }
-
-            return Http::response([], 200);
-        },
+        'stat.istic.net/*' => Http::response([['idsite' => '3', 'main_url' => 'https://app.example.com']]),
     ]);
 
     $config = (new MatomoService)->getConfig();
 
     expect($config['goals'])->toBe([]);
-    Http::assertNotSent(fn ($request) => ($request->data()['method'] ?? '') === 'Goals.addGoal');
+    Http::assertSentCount(1);
+});
+
+it('caches a failed lookup and does not retry the api until it expires', function () {
+    Http::fake([
+        'stat.istic.net/*' => Http::response(null, 500),
+    ]);
+    Log::shouldReceive('warning')->once();
+
+    $service = new MatomoService;
+
+    expect($service->getConfig())->toBeNull();
+    expect($service->getConfig())->toBeNull();
+    Http::assertSentCount(1);
+
+    $this->travel(6)->minutes();
+
+    Log::shouldReceive('warning')->once();
+    expect($service->getConfig())->toBeNull();
+    Http::assertSentCount(2);
+});
+
+it('returns null when the matomo api connection times out', function () {
+    Http::fake([
+        'stat.istic.net/*' => fn () => throw new ConnectionException('cURL error 28: Operation timed out'),
+    ]);
+    Log::shouldReceive('warning')->once();
+
+    expect((new MatomoService)->getConfig())->toBeNull();
 });

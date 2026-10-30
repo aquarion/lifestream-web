@@ -12,9 +12,29 @@ class MatomoService
 
     private const CACHE_TTL = 3600;
 
-    /** Goals to create in Matomo, keyed by the name the frontend uses. Lifestream has none yet. */
-    private const GOALS = [];
+    /**
+     * How long to remember a failed lookup, so an unreachable Matomo doesn't
+     * slow down every request with fresh API calls.
+     */
+    private const FAILURE_CACHE_TTL = 300;
 
+    /**
+     * Cached in place of a config after a failed lookup, distinguishing it
+     * from a cache miss.
+     */
+    private const FAILURE_SENTINEL = 'failed';
+
+    private const CONNECT_TIMEOUT_SECONDS = 2;
+
+    private const TIMEOUT_SECONDS = 5;
+
+    /**
+     * Resolve the Matomo tracker config for this app, creating the site and
+     * any configured goals in Matomo on first use. Returns null when Matomo
+     * is not configured or the API is unreachable.
+     *
+     * @return array{tracker_url: string, site_id: int, goals: array<string, int>}|null
+     */
     public function getConfig(): ?array
     {
         if (! config('services.matomo.url') || ! config('services.matomo.auth_token')) {
@@ -22,6 +42,9 @@ class MatomoService
         }
 
         $cached = Cache::get(self::CACHE_KEY);
+        if ($cached === self::FAILURE_SENTINEL) {
+            return null;
+        }
         if ($cached !== null) {
             return $cached;
         }
@@ -47,6 +70,8 @@ class MatomoService
                 'matomo_url' => config('services.matomo.url'),
             ]);
 
+            Cache::put(self::CACHE_KEY, self::FAILURE_SENTINEL, self::FAILURE_CACHE_TTL);
+
             return null;
         }
     }
@@ -70,13 +95,23 @@ class MatomoService
         return (int) $result['value'];
     }
 
+    /**
+     * @return array<string, int>
+     */
     private function ensureGoals(int $siteId): array
     {
+        /** @var array<string, string> $configuredGoals */
+        $configuredGoals = config('services.matomo.goals', []);
+
+        if ($configuredGoals === []) {
+            return [];
+        }
+
         $existing = $this->api('Goals.getGoals', ['idSite' => $siteId]);
         $byName = array_column($existing, 'idgoal', 'name');
 
         $goals = [];
-        foreach (self::GOALS as $key => $name) {
+        foreach ($configuredGoals as $key => $name) {
             if (isset($byName[$name])) {
                 $goals[$key] = (int) $byName[$name];
             } else {
@@ -97,14 +132,21 @@ class MatomoService
         return $goals;
     }
 
+    /**
+     * @param  array<string, mixed>  $params
+     * @return array<mixed>
+     */
     private function api(string $method, array $params = []): array
     {
-        $response = Http::asForm()->post(config('services.matomo.url').'/index.php', array_merge([
-            'module' => 'API',
-            'method' => $method,
-            'format' => 'json',
-            'token_auth' => config('services.matomo.auth_token'),
-        ], $params));
+        $response = Http::asForm()
+            ->connectTimeout(self::CONNECT_TIMEOUT_SECONDS)
+            ->timeout(self::TIMEOUT_SECONDS)
+            ->post(config('services.matomo.url').'/index.php', array_merge([
+                'module' => 'API',
+                'method' => $method,
+                'format' => 'json',
+                'token_auth' => config('services.matomo.auth_token'),
+            ], $params));
 
         $response->throw();
 

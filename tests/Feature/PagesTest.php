@@ -129,15 +129,7 @@ it('only keeps location icons that are URLs', function () {
         && $locations[1]['icon'] === 'https://example.com/pin_64.png');
 });
 
-it('leaves Matomo out unless it is configured', function () {
-    Http::fake();
-
-    get('/')->assertOk()->assertDontSee('matomo.php');
-
-    Http::assertNothingSent();
-});
-
-it('adds Matomo tracking for the site matching APP_URL', function (string $path) {
+it('adds the Matomo tracker to the heatmap pages too', function () {
     config([
         'services.matomo.url' => 'https://stats.example.com',
         'services.matomo.auth_token' => 'test-token',
@@ -145,17 +137,14 @@ it('adds Matomo tracking for the site matching APP_URL', function (string $path)
     ]);
     Http::fake([
         'lifestream.test/v1/locations*' => Http::response([]),
-        'stats.example.com/*' => fn ($request) => Http::response(match ($request->data()['method'] ?? '') {
-            'SitesManager.getAllSites' => [['idsite' => '7', 'main_url' => 'https://lifestream.example.com']],
-            default => [],
-        }),
+        'stats.example.com/*' => Http::response([['idsite' => '7', 'main_url' => 'https://lifestream.example.com']]),
     ]);
 
-    get($path)
+    get('/maps')
         ->assertOk()
-        ->assertSee('stats.example.com', false)
-        ->assertSee("_paq.push(['setSiteId', '7'])", false);
-})->with(['/', '/maps']);
+        ->assertSee('<script async src="https://stats.example.com/matomo.js"></script>', false)
+        ->assertSee("window._paq.push(['setSiteId', \"7\"]);", false);
+});
 
 it('links to Bluesky and not to Twitter or Facebook', function () {
     get('/')

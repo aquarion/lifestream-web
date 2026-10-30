@@ -1,17 +1,12 @@
-@inject('matomoService', 'App\Services\MatomoService')
-@php($matomo = $matomoService->getConfig())
+@php($matomo = app(\App\Services\MatomoService::class)->getConfig())
 @if ($matomo)
-<script>
-	var _paq = window._paq = window._paq || [];
-	_paq.push(['setTrackerUrl', @js($matomo['tracker_url'] . '/matomo.php')]);
-	_paq.push(['setSiteId', @js((string) $matomo['site_id'])]);
-	_paq.push(['enableLinkTracking']);
-	_paq.push(['trackPageView']);
-	(function() {
-		var script = document.createElement('script');
-		script.async = true;
-		script.src = @js($matomo['tracker_url'] . '/matomo.js');
-		document.head.appendChild(script);
-	})();
-</script>
+    <script>
+        window.matomoGoals = @json((object) $matomo['goals']);
+        window._paq = window._paq || [];
+        window._paq.push(['setTrackerUrl', @json($matomo['tracker_url'].'/matomo.php')]);
+        window._paq.push(['setSiteId', @json((string) $matomo['site_id'])]);
+        window._paq.push(['enableLinkTracking']);
+        window._paq.push(['trackPageView']);
+    </script>
+    <script async src="{{ $matomo['tracker_url'] }}/matomo.js"></script>
 @endif
