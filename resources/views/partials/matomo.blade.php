@@ -1,14 +1,17 @@
-@if (config('services.matomo.url') && config('services.matomo.site_id'))
+@inject('matomoService', 'App\Services\MatomoService')
+@php($matomo = $matomoService->getConfig())
+@if ($matomo)
 <script>
 	var _paq = window._paq = window._paq || [];
-	_paq.push(['trackPageView']);
+	_paq.push(['setTrackerUrl', @js($matomo['tracker_url'] . '/matomo.php')]);
+	_paq.push(['setSiteId', @js((string) $matomo['site_id'])]);
 	_paq.push(['enableLinkTracking']);
+	_paq.push(['trackPageView']);
 	(function() {
-		var u = @js(rtrim(config('services.matomo.url'), '/') . '/');
-		_paq.push(['setTrackerUrl', u + 'matomo.php']);
-		_paq.push(['setSiteId', @js((string) config('services.matomo.site_id'))]);
-		var d = document, g = d.createElement('script'), s = d.getElementsByTagName('script')[0];
-		g.async = true; g.src = u + 'matomo.js'; s.parentNode.insertBefore(g, s);
+		var script = document.createElement('script');
+		script.async = true;
+		script.src = @js($matomo['tracker_url'] . '/matomo.js');
+		document.head.appendChild(script);
 	})();
 </script>
 @endif

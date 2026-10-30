@@ -130,14 +130,26 @@ it('only keeps location icons that are URLs', function () {
 });
 
 it('leaves Matomo out unless it is configured', function () {
-    config(['services.matomo.url' => null, 'services.matomo.site_id' => null]);
+    Http::fake();
 
     get('/')->assertOk()->assertDontSee('matomo.php');
+
+    Http::assertNothingSent();
 });
 
-it('adds Matomo tracking when it is configured', function (string $path) {
-    Http::fake(['lifestream.test/v1/locations*' => Http::response([])]);
-    config(['services.matomo.url' => 'https://stats.example.com', 'services.matomo.site_id' => '7']);
+it('adds Matomo tracking for the site matching APP_URL', function (string $path) {
+    config([
+        'services.matomo.url' => 'https://stats.example.com',
+        'services.matomo.auth_token' => 'test-token',
+        'app.url' => 'https://lifestream.example.com',
+    ]);
+    Http::fake([
+        'lifestream.test/v1/locations*' => Http::response([]),
+        'stats.example.com/*' => fn ($request) => Http::response(match ($request->data()['method'] ?? '') {
+            'SitesManager.getAllSites' => [['idsite' => '7', 'main_url' => 'https://lifestream.example.com']],
+            default => [],
+        }),
+    ]);
 
     get($path)
         ->assertOk()

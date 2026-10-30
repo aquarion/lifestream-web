@@ -32,5 +32,7 @@
         <env name="SESSION_DRIVER" value="array"/>
         <env name="APP_TIMEZONE" value="Europe/London"/>
         <env name="LIFESTREAM_API_URL" value="https://lifestream.test/v1"/>
+        <env name="MATOMO_URL" value=""/>
+        <env name="MATOMO_AUTH_TOKEN" value=""/>
     </php>
 </phpunit>

@@ -42,7 +42,7 @@ return [
 
     'matomo' => [
         'url' => env('MATOMO_URL'),
-        'site_id' => env('MATOMO_SITE_ID'),
+        'auth_token' => env('MATOMO_AUTH_TOKEN'),
     ],
 
 ];
