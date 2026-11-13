@@ -11,16 +11,16 @@
         "lint:check": "biome lint resources/"
     },
     "devDependencies": {
-        "@biomejs/biome": "^2.5.15",
-        "concurrently": "^10.0.6",
+        "@biomejs/biome": "^2.6.6",
+        "concurrently": "^10.0.7",
         "laravel-vite-plugin": "^3.2",
-        "vite": "^8.3.4"
+        "vite": "^8.3.6"
     },
     "dependencies": {
         "@istic-co/otel-browser-errors": "^0.3.0",
         "chart.js": "^4.6.1",
         "leaflet": "^1.9.4",
-        "leaflet.heat": "^0.2.0",
+        "leaflet.heat": "^1.0.0",
         "packery": "^3.0.0"
     }
 }
